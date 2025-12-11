@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Talos.Server.Data;
-using Talos.Server.Models;
 using Talos.Server.Models.Entities;
 using Talos.Server.Services;
 using Talos.Server.Services.Auth;
@@ -153,7 +152,11 @@ if (app.Environment.IsDevelopment())
     Console.WriteLine($"JWT Issuer: {jwtSettings["Issuer"]}");
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
 
 // CORS
 app.UseCors("AllowAll");
@@ -191,6 +194,8 @@ if (app.Environment.IsDevelopment())
         Console.WriteLine($"Database error: {ex.Message}");
     }
 }
+
+app.MapGet("/health", () => Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow }));
 
 app.Run();
 

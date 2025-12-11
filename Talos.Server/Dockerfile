@@ -2,15 +2,16 @@
 USER $APP_UID
 WORKDIR /app
 EXPOSE 8080
-EXPOSE 8081
+
+ENV ASPNETCORE_ENVIRONMENT=Development
 
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["02-Backend/Talos.Server/Talos.Server.csproj", "02-Backend/Talos.Server/"]
-RUN dotnet restore "02-Backend/Talos.Server/Talos.Server.csproj"
+COPY ["Talos.Server/Talos.Server.csproj", "Talos.Server/"]
+RUN dotnet restore "Talos.Server/Talos.Server.csproj"
 COPY . .
-WORKDIR "/src/02-Backend/Talos.Server"
+WORKDIR "/src/Talos.Server"
 RUN dotnet build "./Talos.Server.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
