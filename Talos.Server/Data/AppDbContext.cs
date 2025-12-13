@@ -109,6 +109,11 @@ namespace Talos.Server.Data
                 .HasForeignKey(rt => rt.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<Post>()
+                .HasMany(p => p.Tags)
+                .WithMany(t => t.Posts)
+                .UsingEntity(j => j.ToTable("PostTags"));
+
         }
     }
 }

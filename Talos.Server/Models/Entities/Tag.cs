@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Talos.Server.Models.Entities;
 
 namespace Talos.Server.Models;
 
@@ -27,4 +28,6 @@ public class Tag
     // Navegación
     public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
     public ICollection<UserNotificationPreference> UserPreferences { get; set; } = new List<UserNotificationPreference>();
+    public ICollection<Post> Posts { get; set; } = new List<Post>();
+
 }
