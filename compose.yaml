@@ -1,0 +1,8 @@
+﻿services:
+  talos.server:
+    image: talos.server
+    build:
+      context: .
+      dockerfile: Talos.Server/Dockerfile
+    ports:
+      - "8080:8080"
