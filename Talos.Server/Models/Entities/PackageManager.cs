@@ -1,5 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using Talos.Server.Models;
+using System.Text.Json.Serialization;
 
 public class PackageManager
 {
@@ -7,5 +7,6 @@ public class PackageManager
     public int Id { get; set; }
     public string Name { get; set; }
 
+    [JsonIgnore] // evita ciclo al serializar PackageManager - Packages - PackageManager
     public ICollection<Package> Packages { get; set; }
 }

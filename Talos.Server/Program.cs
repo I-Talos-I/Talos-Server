@@ -97,6 +97,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             }
         };
     });
+// Esto permite que PackageManager -Packages - PackageManager se serialice sin bucles infinitos.
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Manejar ciclos de referencia
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+        options.JsonSerializerOptions.WriteIndented = true;
+    });
+
 
 // Authorization
 builder.Services.AddAuthorization();
@@ -105,7 +114,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
 // AutoMapper
-
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 // Redis Cache
 var redisConnection = builder.Configuration.GetConnectionString("Redis");
