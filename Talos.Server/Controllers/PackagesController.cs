@@ -368,7 +368,7 @@ public class PackagesController : ControllerBase
                 return Forbid();
             }
 
-            _logger.LogInformation($"Iniciando scraping de paquetes por admin: {user.Username}");
+            _logger.LogInformation($"Iniciando scraping de paquetes por admin: {user.UserName}");
             
             // Simular proceso de scraping
             await Task.Delay(2000);

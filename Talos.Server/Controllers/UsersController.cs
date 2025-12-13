@@ -145,7 +145,7 @@ public class UsersController : ControllerBase
             var stats = new
             {
                 userId = user.Id,
-                username = user.Username,
+                username = user.UserName,
                 email = user.Email,
                 role = user.Role,
                 createdAt = user.CreatedAt,
@@ -236,7 +236,7 @@ public class UsersController : ControllerBase
                 .Select(u => new
                 {
                     u.Id,
-                    u.Username,
+                    u.UserName,
                     u.Email,
                     u.Role,
                     u.CreatedAt,
@@ -295,13 +295,13 @@ public class UsersController : ControllerBase
             }
 
             var users = await _context.Users
-                .Where(u => u.Username.Contains(q) || u.Email.Contains(q))
-                .OrderBy(u => u.Username)
+                .Where(u => u.UserName.Contains(q) || u.Email.Contains(q))
+                .OrderBy(u => u.UserName)
                 .Take(limit)
                 .Select(u => new
                 {
                     u.Id,
-                    u.Username,
+                    u.UserName,
                     u.Email,
                     u.Role,
                     templateCount = u.Templates.Count,
@@ -352,7 +352,7 @@ public class UsersController : ControllerBase
                 .Select(f => new
                 {
                     userId = f.FollowingUser.Id,
-                    username = f.FollowingUser.Username,
+                    username = f.FollowingUser.UserName,
                     email = f.FollowingUser.Email,
                     followedAt = f.CreatedAt,
                     templateCount = f.FollowingUser.Templates.Count
@@ -411,7 +411,7 @@ public class UsersController : ControllerBase
                 .Select(f => new
                 {
                     userId = f.FollowedUser.Id,
-                    username = f.FollowedUser.Username,
+                    username = f.FollowedUser.UserName,
                     email = f.FollowedUser.Email,
                     followedAt = f.CreatedAt,
                     templateCount = f.FollowedUser.Templates.Count

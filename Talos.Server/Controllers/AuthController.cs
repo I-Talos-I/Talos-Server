@@ -78,7 +78,7 @@ public class AuthController : ControllerBase
             var profileDto = new UserProfileDto
             {
                 Id = user.Id,
-                Username = user.Username,
+                Username = user.UserName,
                 Email = user.Email,
                 Role = user.Role,
                 CreatedAt = user.CreatedAt,
@@ -117,17 +117,17 @@ public class AuthController : ControllerBase
             }
 
             // Verificar si el nuevo username ya existe (si se cambia)
-            if (!string.IsNullOrEmpty(updateDto.Username) && updateDto.Username != user.Username)
+            if (!string.IsNullOrEmpty(updateDto.Username) && updateDto.Username != user.UserName)
             {
                 var existingUsername = await _context.Users
-                    .AnyAsync(u => u.Username == updateDto.Username && u.Id != userId);
+                    .AnyAsync(u => u.UserName == updateDto.Username && u.Id != userId);
                 
                 if (existingUsername)
                 {
                     return Conflict(new { message = "El nombre de usuario ya está en uso" });
                 }
                 
-                user.Username = updateDto.Username;
+                user.UserName = updateDto.Username;
             }
 
             // Verificar si el nuevo email ya existe (si se cambia)

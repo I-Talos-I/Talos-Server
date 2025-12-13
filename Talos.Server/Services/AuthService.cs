@@ -9,7 +9,10 @@ using Talos.Server.Models;
 using Talos.Server.Models.Dtos.Auth;
 using Talos.Server.Models.DTOs.Auth;
 using Talos.Server.Models.DTOs.Users;
+using Talos.Server.Models.Entities;
 using Talos.Server.Services.Auth;
+using RefreshTokenEntity = Talos.Server.Models.Entities.RefreshToken;
+
 
 namespace Talos.Server.Services;
 
@@ -63,11 +66,12 @@ public class AuthService : IAuthService
 
             // Generar token
             var tokenResult = GenerateJwtToken(user);
+            var refreshToken = await CreateRefreshTokenAsync(user);
             
             var userDto = new UserDto
             {
                 Id = user.Id,
-                Username = user.Username,
+                Username = user.UserName,
                 Email = user.Email,
                 Role = user.Role,
                 CreatedAt = user.CreatedAt
@@ -77,7 +81,7 @@ public class AuthService : IAuthService
             {
                 Success = true,
                 Token = tokenResult.Token,
-                RefreshToken = tokenResult.RefreshToken,
+                RefreshToken = refreshToken.Token,
                 ExpiresAt = tokenResult.ExpiresAt,
                 User = userDto
             };
@@ -134,7 +138,7 @@ public class AuthService : IAuthService
 
         // Verificar si el username ya existe
         var existingUsername = await _context.Users
-            .FirstOrDefaultAsync(u => u.Username == registerDto.Username);
+            .FirstOrDefaultAsync(u => u.UserName == registerDto.Username);
 
         if (existingUsername != null)
         {
@@ -151,14 +155,14 @@ public class AuthService : IAuthService
         // Crear nuevo usuario
         var newUser = new User
         {
-            Username = registerDto.Username,
+            UserName = registerDto.Username,
             Email = registerDto.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password),
             Role = "user",
             CreatedAt = DateTime.UtcNow
         };
 
-        _logger.LogInformation($"User object created: {newUser.Username}, {newUser.Email}");
+        _logger.LogInformation($"User object created: {newUser.UserName}, {newUser.Email}");
 
         await _context.Users.AddAsync(newUser);
         
@@ -180,23 +184,24 @@ public class AuthService : IAuthService
 
         // Generar token
         var tokenResult = GenerateJwtToken(newUser);
+        var refreshToken = await CreateRefreshTokenAsync(newUser);
         
         var userDto = new UserDto
         {
             Id = newUser.Id,
-            Username = newUser.Username,
+            Username = newUser.UserName,
             Email = newUser.Email,
             Role = newUser.Role,
             CreatedAt = newUser.CreatedAt
         };
 
-        _logger.LogInformation($"Registration successful for user: {newUser.Username}");
+        _logger.LogInformation($"Registration successful for user: {newUser.UserName}");
 
         return new AuthResponseDto
         {
             Success = true,
             Token = tokenResult.Token,
-            RefreshToken = tokenResult.RefreshToken,
+            RefreshToken = refreshToken.Token,
             ExpiresAt = tokenResult.ExpiresAt,
             User = userDto
         };
@@ -212,14 +217,66 @@ public class AuthService : IAuthService
     }
 }
 
-    public Task<AuthResponseDto> RefreshTokenAsync(string refreshToken)
+    public async Task<AuthResponseDto> RefreshTokenAsync(string refreshToken)
     {
-        return Task.FromResult(new AuthResponseDto
+        var storedToken = await _context.RefreshTokens
+            .Include(rt => rt.User)
+            .FirstOrDefaultAsync(rt => rt.Token == refreshToken);
+
+        if (storedToken == null)
         {
-            Success = false,
-            Error = "No implementado"
-        });
+            return new AuthResponseDto
+            {
+                Success = false,
+                Error = "Refresh token inválido"
+            };
+        }
+
+        if (storedToken.IsRevoked)
+        {
+            return new AuthResponseDto
+            {
+                Success = false,
+                Error = "Refresh token revocado"
+            };
+        }
+
+        if (storedToken.ExpiresAt < DateTime.UtcNow)
+        {
+            return new AuthResponseDto
+            {
+                Success = false,
+                Error = "Refresh token expirado"
+            };
+        }
+
+        // Revocar el refresh token actual
+        storedToken.IsRevoked = true;
+        storedToken.RevokedAt = DateTime.UtcNow;
+
+        // Generar nuevos tokens
+        var tokenResult = GenerateJwtToken(storedToken.User);
+        var newRefreshToken = await CreateRefreshTokenAsync(storedToken.User);
+
+        await _context.SaveChangesAsync();
+
+        return new AuthResponseDto
+        {
+            Success = true,
+            Token = tokenResult.Token,
+            RefreshToken = newRefreshToken.Token,
+            ExpiresAt = tokenResult.ExpiresAt,
+            User = new UserDto
+            {
+                Id = storedToken.User.Id,
+                Username = storedToken.User.UserName,
+                Email = storedToken.User.Email,
+                Role = storedToken.User.Role,
+                CreatedAt = storedToken.User.CreatedAt
+            }
+        };
     }
+
 
     private TokenResult GenerateJwtToken(User user)
     {
@@ -230,7 +287,7 @@ public class AuthService : IAuthService
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.Username),
+            new Claim(ClaimTypes.Name, user.UserName),
             new Claim(ClaimTypes.Email, user.Email),
             new Claim(ClaimTypes.Role, user.Role)
         };
@@ -250,15 +307,30 @@ public class AuthService : IAuthService
         return new TokenResult
         {
             Token = tokenString,
-            RefreshToken = Guid.NewGuid().ToString(),
             ExpiresAt = expires
         };
     }
+    
+    private async Task<RefreshTokenEntity> CreateRefreshTokenAsync(User user)
+    {
+        var refreshToken = new RefreshTokenEntity
+        {
+            Token = Convert.ToBase64String(Guid.NewGuid().ToByteArray()),
+            UserId = user.Id,
+            ExpiresAt = DateTime.UtcNow.AddDays(7)
+        };
+
+        _context.RefreshTokens.Add(refreshToken);
+        await _context.SaveChangesAsync();
+
+        return refreshToken;
+    }
+
+
 
     private class TokenResult
     {
         public string Token { get; set; }
-        public string RefreshToken { get; set; }
         public DateTime ExpiresAt { get; set; }
     }
 }

@@ -18,12 +18,14 @@ namespace Talos.Server.Data
         public DbSet<Follow> Follows { get; set; }
         public DbSet<Post> Posts { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
-
+        public DbSet<Tag> Tags { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<UserNotificationPreference> UserNotificationPreferences { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-
+            
             // User
             modelBuilder.Entity<User>()
                 .HasMany(u => u.Posts)
@@ -38,13 +40,13 @@ namespace Talos.Server.Data
             // Follows
             modelBuilder.Entity<Follow>()
                 .HasOne(f => f.FollowingUser)
-                .WithMany()
+                .WithMany(u => u.Following)
                 .HasForeignKey(f => f.FollowingUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Follow>()
                 .HasOne(f => f.FollowedUser)
-                .WithMany()
+                .WithMany(u => u.Followers)
                 .HasForeignKey(f => f.FollowedUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
@@ -77,6 +79,36 @@ namespace Talos.Server.Data
                 .WithMany(pv => pv.TargetCompatibilities)
                 .HasForeignKey(c => c.TargetPackageVersionId)
                 .OnDelete(DeleteBehavior.Restrict);
+            
+            // 🔔 Notification → User
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.User)
+                .WithMany(u => u.Notifications)
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // 🔔 Notification → Tag
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Tag)
+                .WithMany(t => t.Notifications)
+                .HasForeignKey(n => n.TagId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // ⚙️ UserNotificationPreference
+            modelBuilder.Entity<UserNotificationPreference>()
+                .HasIndex(p => new { p.UserId, p.TagId })
+                .IsUnique();
+            
+            modelBuilder.Entity<RefreshToken>()
+                .HasIndex(rt => rt.Token)
+                .IsUnique();
+
+            modelBuilder.Entity<RefreshToken>()
+                .HasOne(rt => rt.User)
+                .WithMany(u => u.RefreshTokens)
+                .HasForeignKey(rt => rt.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
         }
     }
 }

@@ -6,11 +6,9 @@ public class Follow
 {
     [Key]
     public int Id { get; set; }
-
-    [ForeignKey("FollowingUser")]
+    
     public int FollowingUserId { get; set; }
-
-    [ForeignKey("FollowedUser")]
+    
     public int FollowedUserId { get; set; }
 
     public DateTime CreatedAt { get; set; }
