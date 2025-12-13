@@ -2,8 +2,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 using Talos.Server.Data;
 using Talos.Server.Models;
+using Talos.Server.Services.Interfaces;
 
 namespace Talos.Server.Controllers;
 
@@ -14,12 +16,16 @@ public class UsersController : ControllerBase
     private readonly AppDbContext _context;
     private readonly IDistributedCache _cache;
     private readonly ILogger<UsersController> _logger;
+    private readonly IUserStatusService _userStatusService;
 
-    public UsersController(AppDbContext context, IDistributedCache cache, ILogger<UsersController> logger)
+    
+    public UsersController(AppDbContext context, IDistributedCache cache, ILogger<UsersController> logger, 
+        IUserStatusService userStatusService)
     {
         _context = context;
         _cache = cache;
         _logger = logger;
+        _userStatusService = userStatusService;
     }
 
     // GET: api/users/{id}/templates
@@ -445,4 +451,20 @@ public class UsersController : ControllerBase
             return StatusCode(500, new { message = "Error interno", detail = ex.Message });
         }
     }
+    [Authorize]
+    [HttpGet("status")]
+    public async Task<IActionResult> GetUsersStatus()
+    {
+        try
+        {
+            var result = await _userStatusService.GetUsersStatusAsync();
+            return Ok(new { source = "database/cache", data = result });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error obteniendo estado de usuarios");
+            return StatusCode(500, new { message = "Error interno" });
+        }
+    }
+
 }

@@ -3,9 +3,11 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Talos.Server.Data;
+using Talos.Server.Middleware;
 using Talos.Server.Models.Entities;
 using Talos.Server.Services;
 using Talos.Server.Services.Auth;
+using Talos.Server.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -103,6 +105,12 @@ builder.Services.AddAuthorization();
 
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IUserStatusService, UserStatusService>();
+builder.Services.AddScoped<IFollowService, FollowService>();
+builder.Services.AddScoped<ITagService, TagService>();
+builder.Services.AddScoped<IPostService, PostService>();
+
 
 // AutoMapper
 
@@ -163,6 +171,10 @@ app.UseCors("AllowAll");
 
 // Authentication & Authorization (IMPORTANTE: este orden es crucial)
 app.UseAuthentication();
+
+// Middleware para actualizar último visto / estado online
+app.UseMiddleware<UserActivityMiddleware>();
+
 app.UseAuthorization();
 
 app.MapControllers();

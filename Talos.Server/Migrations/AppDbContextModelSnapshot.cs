@@ -206,7 +206,22 @@ namespace Talos.Server.Migrations
                     b.ToTable("PackageVersions");
                 });
 
-            modelBuilder.Entity("Post", b =>
+            modelBuilder.Entity("PostTag", b =>
+                {
+                    b.Property<int>("PostsId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TagsId")
+                        .HasColumnType("int");
+
+                    b.HasKey("PostsId", "TagsId");
+
+                    b.HasIndex("TagsId");
+
+                    b.ToTable("PostTags", (string)null);
+                });
+
+            modelBuilder.Entity("Talos.Server.Models.Entities.Post", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -629,7 +644,22 @@ namespace Talos.Server.Migrations
                     b.Navigation("Package");
                 });
 
-            modelBuilder.Entity("Post", b =>
+            modelBuilder.Entity("PostTag", b =>
+                {
+                    b.HasOne("Talos.Server.Models.Entities.Post", null)
+                        .WithMany()
+                        .HasForeignKey("PostsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Talos.Server.Models.Tag", null)
+                        .WithMany()
+                        .HasForeignKey("TagsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Talos.Server.Models.Entities.Post", b =>
                 {
                     b.HasOne("Talos.Server.Models.User", "User")
                         .WithMany("Posts")

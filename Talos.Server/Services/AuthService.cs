@@ -11,6 +11,7 @@ using Talos.Server.Models.DTOs.Auth;
 using Talos.Server.Models.DTOs.Users;
 using Talos.Server.Models.Entities;
 using Talos.Server.Services.Auth;
+using Talos.Server.Services.Interfaces;
 using RefreshTokenEntity = Talos.Server.Models.Entities.RefreshToken;
 
 
@@ -22,11 +23,14 @@ public class AuthService : IAuthService
     private readonly IConfiguration _configuration;
     private readonly ILogger<AuthService> _logger;
 
-    public AuthService(AppDbContext context, IConfiguration configuration, ILogger<AuthService> logger)
+    private readonly IUserStatusService _userStatusService;
+
+    public AuthService(AppDbContext context, IConfiguration configuration, ILogger<AuthService> logger,IUserStatusService userStatusService)
     {
         _context = context;
         _configuration = configuration;
         _logger = logger;
+        _userStatusService = userStatusService;
     }
 
     public async Task<AuthResponseDto> LoginAsync(string email, string password)
@@ -67,6 +71,7 @@ public class AuthService : IAuthService
             // Generar token
             var tokenResult = GenerateJwtToken(user);
             var refreshToken = await CreateRefreshTokenAsync(user);
+            await _userStatusService.SetUserOnlineAsync(user.Id);
             
             var userDto = new UserDto
             {
