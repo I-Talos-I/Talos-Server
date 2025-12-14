@@ -95,7 +95,7 @@ public class TemplateController : ControllerBase
             .Select(t => new TemplateDto
             {
                 Id = t.Id,
-                Template_Name = t.TemplateName,
+                TemplateName = t.TemplateName,
                 Slug = t.Slug,
                 // agrega solo lo que realmente necesitas
             })

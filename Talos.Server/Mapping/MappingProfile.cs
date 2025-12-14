@@ -20,11 +20,11 @@ public class MappingProfile : Profile
         // Template - TemplateDto
         CreateMap<Template, TemplateDto>()
             .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
-            .ForMember(dest => dest.User_Id, opt => opt.MapFrom(src => src.UserId))
-            .ForMember(dest => dest.Template_Name, opt => opt.MapFrom(src => src.TemplateName))
+            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
+            .ForMember(dest => dest.TemplateName, opt => opt.MapFrom(src => src.TemplateName))
             .ForMember(dest => dest.Slug, opt => opt.MapFrom(src => src.Slug))
-            .ForMember(dest => dest.Is_Public, opt => opt.MapFrom(src => src.IsPublic))
-            .ForMember(dest => dest.License_Type, opt => opt.MapFrom(src => src.LicenseType))
-            .ForMember(dest => dest.Create_At, opt => opt.MapFrom(src => src.CreateAt));
+            .ForMember(dest => dest.IsPublic, opt => opt.MapFrom(src => src.IsPublic))
+            .ForMember(dest => dest.LicenseType, opt => opt.MapFrom(src => src.LicenseType))
+            .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreateAt));
     }
 }
