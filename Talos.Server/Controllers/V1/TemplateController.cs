@@ -81,24 +81,29 @@ public class TemplateController : ControllerBase
         if (string.IsNullOrWhiteSpace(q))
             return BadRequest(new { message = "Search query is required" });
 
-        try
-        {
-            var search = q.ToLower();
+        var search = q.Trim();
+        var slugSearch = search.Replace(" ", "-");
 
-            var templates = await _context.Templates
-                .AsNoTracking()
-                .Where(t =>
-                    t.TemplateName.ToLower().Contains(search) ||
-                    t.Slug.Contains(search.Replace(" ", "-")))
-                .ToListAsync();
+        var templates = await _context.Templates
+            .AsNoTracking()
+            .Where(t =>
+                EF.Functions.Like(t.TemplateName, $"%{search}%") ||
+                EF.Functions.Like(t.Slug, $"%{slugSearch}%")
+            )
+            .OrderBy(t => t.TemplateName)
+            .Take(50)
+            .Select(t => new TemplateDto
+            {
+                Id = t.Id,
+                Template_Name = t.TemplateName,
+                Slug = t.Slug,
+                // agrega solo lo que realmente necesitas
+            })
+            .ToListAsync();
 
-            return Ok(_mapper.Map<List<TemplateDto>>(templates));
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { message = "Internal server error", detail = ex.Message });
-        }
+        return Ok(templates);
     }
+
 
     // GET: api/templates/featured
     [HttpGet("featured")]
