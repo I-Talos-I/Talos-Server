@@ -147,6 +147,24 @@ public class TemplateController : ControllerBase
             return StatusCode(500, new { message = "Internal server error", detail = ex.Message });
         }
     }
+    
+    // GET: api/templates/{slug}
+    [HttpGet("by-slug/{slug}")]
+    public async Task<IActionResult> GetBySlug(string slug)
+    {
+        if (string.IsNullOrWhiteSpace(slug))
+            return BadRequest(new { message = "Slug is required" });
+
+        var template = await _context.Templates
+            .AsNoTracking()
+            .Include(t => t.TemplateDependencies)
+            .FirstOrDefaultAsync(t => t.Slug == slug);
+
+        if (template == null)
+            return NotFound(new { message = "Template not found" });
+
+        return Ok(_mapper.Map<TemplateDto>(template));
+    }
 
     // POST: api/templates
     [HttpPost]
