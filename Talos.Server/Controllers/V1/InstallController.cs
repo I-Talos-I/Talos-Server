@@ -1,12 +1,14 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using StackExchange.Redis;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 using Talos.Server.Models.Dtos;
 
 namespace Talos.Server.Controllers
 {
+    [Authorize(Roles = "admin")]
     [ApiController]
-    [Route("api/install")]
+    [Route("api/v1/install")]
     public class InstallController : ControllerBase
     {
         private readonly IDatabase _db;

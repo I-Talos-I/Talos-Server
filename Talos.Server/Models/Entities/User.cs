@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Talos.Server.Models.Entities;
 
 namespace Talos.Server.Models;
 
@@ -34,6 +35,7 @@ public class User
     public DateTime CreatedAt { get; set; }
 
     // Propiedades de navegación
+    public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
     public ICollection<Post> Posts { get; set; } = new List<Post>();
     public ICollection<Follow> Followers { get; set; } = new List<Follow>();
     public ICollection<Follow> Following { get; set; } = new List<Follow>();

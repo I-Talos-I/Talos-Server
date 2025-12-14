@@ -17,5 +17,6 @@ public class Template
     public DateTime CreateAt { get; set; }
 
     public User User { get; set; }
+    public List<string> Tags { get; set; } = new();
     public ICollection<TemplateDependencies> TemplateDependencies { get; set; }
 }

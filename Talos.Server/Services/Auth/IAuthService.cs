@@ -8,5 +8,6 @@ namespace Talos.Server.Services.Auth
         Task<AuthResponseDto> LoginAsync(string email, string password);
         Task<AuthResponseDto> RegisterAsync(UserRegisterDto registerDto);
         Task<AuthResponseDto> RefreshTokenAsync(string refreshToken);
+        Task<bool> RevokeRefreshTokenAsync(string refreshToken);
     }
 }
