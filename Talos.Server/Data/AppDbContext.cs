@@ -80,21 +80,21 @@ namespace Talos.Server.Data
                 .HasForeignKey(c => c.TargetPackageVersionId)
                 .OnDelete(DeleteBehavior.Restrict);
             
-            // 🔔 Notification → User
+            // Notification → User
             modelBuilder.Entity<Notification>()
                 .HasOne(n => n.User)
                 .WithMany(u => u.Notifications)
                 .HasForeignKey(n => n.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // 🔔 Notification → Tag
+            // Notification → Tag
             modelBuilder.Entity<Notification>()
                 .HasOne(n => n.Tag)
                 .WithMany(t => t.Notifications)
                 .HasForeignKey(n => n.TagId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // ⚙️ UserNotificationPreference
+            // UserNotificationPreference
             modelBuilder.Entity<UserNotificationPreference>()
                 .HasIndex(p => new { p.UserId, p.TagId })
                 .IsUnique();
@@ -114,6 +114,11 @@ namespace Talos.Server.Data
                 .WithMany(t => t.Posts)
                 .UsingEntity(j => j.ToTable("PostTags"));
 
+            modelBuilder.Entity<Tag>().HasData(
+                new Tag { Id = 1, Name = "system", IsSystemTag = true, CreatedAt = DateTime.UtcNow },
+                new Tag { Id = 2, Name = "announcement", IsSystemTag = true, CreatedAt = DateTime.UtcNow },
+                new Tag { Id = 3, Name = "update", IsSystemTag = true, CreatedAt = DateTime.UtcNow }
+            );
         }
     }
 }

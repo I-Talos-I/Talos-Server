@@ -110,7 +110,7 @@ builder.Services.AddScoped<IUserStatusService, UserStatusService>();
 builder.Services.AddScoped<IFollowService, FollowService>();
 builder.Services.AddScoped<ITagService, TagService>();
 builder.Services.AddScoped<IPostService, PostService>();
-
+builder.Services.AddScoped<AiTagService>();
 
 // AutoMapper
 

@@ -13,25 +13,17 @@ namespace Talos.Server.Middleware
             _next = next;
         }
 
-        public async Task InvokeAsync(HttpContext context, AppDbContext db, IUserStatusService statusService)
+        public async Task InvokeAsync(HttpContext context, IUserStatusService statusService)
         {
             if (context.User.Identity?.IsAuthenticated == true)
             {
-                var userIdClaim = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var userIdClaim = context.User
+                    .FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
                 if (int.TryParse(userIdClaim, out int userId))
                 {
-                    var user = await db.Users.FindAsync(userId);
-                    if (user != null)
-                    {
-                        // Actualizar último visto
-                        user.LastSeenAt = DateTime.UtcNow;
-                        user.IsOnline = true;
-
-                        // Actualizar cache/estado online
-                        await statusService.SetUserOnlineAsync(userId);
-
-                        await db.SaveChangesAsync();
-                    }
+                    // SOLO cache (rápido, sin DB)
+                    await statusService.SetUserOnlineAsync(userId);
                 }
             }
 

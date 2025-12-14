@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Talos.Server.Data;
 using Talos.Server.Models;
+using Talos.Server.Models.Dtos;
 using Talos.Server.Services.Interfaces;
 
 namespace Talos.Server.Services;
@@ -14,7 +15,8 @@ public class NotificationService : INotificationService
         _context = context;
     }
 
-    public async Task<Notification> CreateAsync(
+    // Crear notificación
+    public async Task<NotificationDto> CreateAsync(
         int userId,
         string title,
         string message,
@@ -34,27 +36,56 @@ public class NotificationService : INotificationService
         _context.Notifications.Add(notification);
         await _context.SaveChangesAsync();
 
-        return notification;
+        return await MapToDtoAsync(notification.Id);
     }
 
-    public async Task<List<Notification>> GetUserNotificationsAsync(int userId)
+    // Obtener notificaciones del usuario
+    public async Task<List<NotificationDto>> GetUserNotificationsAsync(
+        int userId,
+        bool unreadOnly = false
+    )
     {
-        return await _context.Notifications
-            .Where(n => n.UserId == userId)
+        var query = _context.Notifications
+            .Include(n => n.Tag)
+            .Where(n => n.UserId == userId);
+
+        if (unreadOnly)
+            query = query.Where(n => !n.IsRead);
+
+        return await query
             .OrderByDescending(n => n.CreatedAt)
+            .Select(n => new NotificationDto
+            {
+                Id = n.Id,
+                Title = n.Title,
+                Message = n.Message,
+                IsRead = n.IsRead,
+                CreatedAt = n.CreatedAt,
+                TagId = n.TagId,
+                TagName = n.Tag != null ? n.Tag.Name : null
+            })
             .ToListAsync();
     }
 
-
-    public async Task MarkAsReadAsync(int notificationId)
+    // ✔️ Marcar una notificación como leída (seguro)
+    public async Task<bool> MarkAsReadAsync(int notificationId, int userId)
     {
-        var notification = await _context.Notifications.FindAsync(notificationId);
-        if (notification == null) return;
+        var notification = await _context.Notifications
+            .FirstOrDefaultAsync(n => n.Id == notificationId && n.UserId == userId);
 
-        notification.IsRead = true;
-        await _context.SaveChangesAsync();
+        if (notification == null)
+            return false;
+
+        if (!notification.IsRead)
+        {
+            notification.IsRead = true;
+            await _context.SaveChangesAsync();
+        }
+
+        return true;
     }
 
+    // Marcar todas como leídas
     public async Task MarkAllAsReadAsync(int userId)
     {
         var notifications = await _context.Notifications
@@ -65,5 +96,24 @@ public class NotificationService : INotificationService
             n.IsRead = true;
 
         await _context.SaveChangesAsync();
+    }
+
+    // Helper privado
+    private async Task<NotificationDto> MapToDtoAsync(int notificationId)
+    {
+        return await _context.Notifications
+            .Include(n => n.Tag)
+            .Where(n => n.Id == notificationId)
+            .Select(n => new NotificationDto
+            {
+                Id = n.Id,
+                Title = n.Title,
+                Message = n.Message,
+                IsRead = n.IsRead,
+                CreatedAt = n.CreatedAt,
+                TagId = n.TagId,
+                TagName = n.Tag != null ? n.Tag.Name : null
+            })
+            .FirstAsync();
     }
 }

@@ -1,18 +1,27 @@
-using Talos.Server.Models;
+using Talos.Server.Models.Dtos;
 
 namespace Talos.Server.Services.Interfaces;
 
 public interface INotificationService
 {
-    Task<Notification> CreateAsync(
+    Task<NotificationDto> CreateAsync(
         int userId,
         string title,
         string message,
         int? tagId = null
     );
 
-    Task<List<Notification>> GetUserNotificationsAsync(int userId);
+    Task<List<NotificationDto>> GetUserNotificationsAsync(
+        int userId,
+        bool unreadOnly = false
+    );
 
-    Task MarkAsReadAsync(int notificationId);
-    Task MarkAllAsReadAsync(int userId);
+    Task<bool> MarkAsReadAsync(
+        int notificationId,
+        int userId
+    );
+
+    Task MarkAllAsReadAsync(
+        int userId
+    );
 }

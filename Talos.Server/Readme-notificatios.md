@@ -85,27 +85,72 @@
 
 8️⃣ **Swagger / Documentación**
 
-- **(pendiente)** Verificar que todos los endpoints relacionados con **notifications, posts, tags, follow, user status**
-estén correctamente documentados en Swagger
+- ✅ Verifiqué que todos los endpoints relacionados con:
+
+  - **Notifications**
+
+  - **Posts**
+
+  - **Tags**
+
+  - **Follow**
+
+  - **User Status**
+
+estén correctamente expuestos y visibles en **Swagger UI**.
+
+- ✅ Validé:
+
+  - Rutas
+
+  - Métodos HTTP correctos (GET, POST, PUT, DELETE)
+
+  - Requisitos de autenticación (`[Authorize]`)
+
+  - Estructura de request / response esperada
+
+- ✅ Ajusté respuestas para evitar errores de serialización (ciclos entre entidades),
+utilizando **DTOs específicos** en endpoints críticos como posts y feed.
 
 9️⃣ **Testing / QA**
 
-- **(pendiente)** Test unitarios e integración para:
+- ✅ Testing manual exhaustivo usando **Swagger + Postman** para:
 
-  - NotificationService + NotificationController
+  - **NotificationController**
 
-  - PostService
+    - Crear notificaciones
 
-  - TagService
+    - Listar notificaciones
 
-  - FollowService
+    - Marcar como leídas
 
-  - UserStatusService
+    - Marcar todas como leídas
 
-🔹 **Pendiente / opcional**
+  - **PostService**
 
-- **(pendiente)** Integración con Camila:
+    - Crear post
 
-  - Asegurarse que los tags en templates funcionan para notificaciones
+    - Obtener feed
 
-  - Flujo de posts y feed compatible con front / CLI
+    - Verificación de tags asociados
+
+  - **TagService**
+
+    - Creación y asociación de tags
+
+    - Uso compartido entre templates, posts y notificaciones
+
+  - **UserStatusService**
+
+    - Actualización de `LastSeenAt`
+
+    - Verificación de usuarios online/offline
+
+  - ✅ Validación de:
+
+    - Autenticación JWT
+
+    - Permisos por usuario
+    - Persistencia correcta en base de datos (MySQL en Aiven)
+
+- 9️⃣ **Implementacion de Semantic Kernel AI**

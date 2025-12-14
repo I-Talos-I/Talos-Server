@@ -30,12 +30,28 @@ public class NotificationController : ControllerBase
         var notifications = await _notificationService.GetUserNotificationsAsync(userId);
         return Ok(notifications);
     }
+    
+    // GET: api/notifications/unread
+    [HttpGet("unread")]
+    public async Task<IActionResult> GetUnreadNotifications()
+    {
+        var userId = GetUserId();
+
+        var notifications = await _notificationService
+            .GetUserNotificationsAsync(userId, unreadOnly: true);
+
+        return Ok(notifications);
+    }
 
     // PUT: api/notifications/{id}/read
     [HttpPut("{id}/read")]
     public async Task<IActionResult> MarkAsRead(int id)
     {
-        await _notificationService.MarkAsReadAsync(id);
+        var userId = GetUserId();
+        
+        var success = await _notificationService.MarkAsReadAsync(id,  userId);
+        if (!success)
+            return NotFound();
         return NoContent();
     }
 

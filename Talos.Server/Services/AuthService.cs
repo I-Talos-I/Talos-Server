@@ -71,7 +71,7 @@ public class AuthService : IAuthService
             // Generar token
             var tokenResult = GenerateJwtToken(user);
             var refreshToken = await CreateRefreshTokenAsync(user);
-            await _userStatusService.SetUserOnlineAsync(user.Id);
+           // await _userStatusService.SetUserOnlineAsync(user.Id);
             
             var userDto = new UserDto
             {

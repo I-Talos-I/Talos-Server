@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Talos.Server.AI;
 using Talos.Server.Data;
 using Talos.Server.Models;
 using Talos.Server.Models.Entities;
@@ -9,13 +10,24 @@ namespace Talos.Server.Services;
 public class PostService : IPostService
 {
     private readonly AppDbContext _context;
+    private readonly AiTagService _aiTagService;
 
-    public PostService(AppDbContext context)
+    public PostService(
+        AppDbContext context,
+        AiTagService aiTagService
+    )
     {
         _context = context;
+        _aiTagService = aiTagService;
     }
 
-    public async Task<Post> CreatePostAsync(int userId, string title, string body, string status, List<int>? tagIds = null)
+    public async Task<Post> CreatePostAsync(
+        int userId,
+        string title,
+        string body,
+        string status,
+        List<int>? tagIds = null
+    )
     {
         var post = new Post
         {
@@ -26,17 +38,46 @@ public class PostService : IPostService
             CreatedAt = DateTime.UtcNow
         };
 
+        // Tags manuales
         if (tagIds != null && tagIds.Any())
         {
-            var tags = await _context.Tags.Where(t => tagIds.Contains(t.Id)).ToListAsync();
+            var tags = await _context.Tags
+                .Where(t => tagIds.Contains(t.Id))
+                .ToListAsync();
+
             foreach (var tag in tags)
-            {
                 post.Tags.Add(tag);
+        }
+        // Tags automáticos con IA
+        else
+        {
+            var aiTags = await _aiTagService.GenerateTagsAsync(
+                $"{title}. {body}"
+            );
+
+            foreach (var tagName in aiTags)
+            {
+                var existingTag = await _context.Tags
+                    .FirstOrDefaultAsync(t => t.Name == tagName);
+
+                if (existingTag == null)
+                {
+                    existingTag = new Tag
+                    {
+                        Name = tagName,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    _context.Tags.Add(existingTag);
+                }
+
+                post.Tags.Add(existingTag);
             }
         }
 
         _context.Posts.Add(post);
         await _context.SaveChangesAsync();
+
         return post;
     }
 
@@ -51,13 +92,12 @@ public class PostService : IPostService
 
     public async Task<List<Post>> GetFeedAsync(int userId)
     {
-        // Posts de usuarios que sigo + míos
         var followingIds = await _context.Follows
             .Where(f => f.FollowingUserId == userId)
             .Select(f => f.FollowedUserId)
             .ToListAsync();
 
-        followingIds.Add(userId); // incluir propios posts
+        followingIds.Add(userId);
 
         return await _context.Posts
             .Include(p => p.User)
