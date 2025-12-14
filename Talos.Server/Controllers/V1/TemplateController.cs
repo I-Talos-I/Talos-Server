@@ -7,7 +7,6 @@ using Talos.Server.Models;
 using Talos.Server.Models.Dtos;
 
 namespace Talos.Server.Controllers;
-[Authorize(Roles = "admin,user")]
 
 [ApiController]
 [Route("api/v1/templates")]
@@ -24,6 +23,7 @@ public class TemplateController : ControllerBase
 
     // GET: api/templates
     [HttpGet]
+    [Authorize(Roles = "admin,user")]
     public async Task<IActionResult> GetAllTemplates(
         [FromQuery] bool? isPublic = null,
         [FromQuery] string? licenseType = null,
@@ -168,6 +168,7 @@ public class TemplateController : ControllerBase
 
     // POST: api/templates
     [HttpPost]
+    [Authorize(Roles = "admin,user")]
     public async Task<IActionResult> CreateTemplate([FromBody] TemplateCreateDto dto)
     {
         try
@@ -209,6 +210,7 @@ public class TemplateController : ControllerBase
 
     // PUT: api/templates/{id}
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "admin,user")]
     public async Task<IActionResult> UpdateTemplate(int id, [FromBody] TemplateCreateDto dto)
     {
         var template = await _context.Templates.FirstOrDefaultAsync(t => t.Id == id);
@@ -229,6 +231,7 @@ public class TemplateController : ControllerBase
 
     // DELETE: api/templates/{id}
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "admin,user")]
     public async Task<IActionResult> DeleteTemplate(int id)
     {
         var template = await _context.Templates.FirstOrDefaultAsync(t => t.Id == id);
