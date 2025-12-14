@@ -6,12 +6,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Talos.Server.Data;
 using Talos.Server.Models;
-using Talos.Server.Models.Dtos.Auth;
+using Talos.Server.Models.Entities;
 using Talos.Server.Models.DTOs.Auth;
 using Talos.Server.Models.DTOs.Users;
-using Talos.Server.Services.Auth;
 
-namespace Talos.Server.Services;
+namespace Talos.Server.Services.Auth;
 
 public class AuthService : IAuthService
 {
@@ -28,127 +27,44 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponseDto> LoginAsync(string email, string password)
     {
-        try
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email == email);
+
+        if (user == null)
+            return new AuthResponseDto { Success = false, Error = "Usuario no encontrado" };
+
+        bool isValid = !string.IsNullOrEmpty(user.PasswordHash) && BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
+
+        if (!isValid)
+            return new AuthResponseDto { Success = false, Error = "Contraseña incorrecta" };
+
+        var tokenResult = GenerateJwtToken(user);
+
+        return new AuthResponseDto
         {
-            _logger.LogInformation($"Login attempt for: {email}");
-
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Email == email);
-
-            if (user == null)
-            {
-                return new AuthResponseDto
-                {
-                    Success = false,
-                    Error = "Usuario no encontrado"
-                };
-            }
-
-            // Verificar contraseña
-            bool isPasswordValid = false;
-            
-            if (!string.IsNullOrEmpty(user.PasswordHash))
-            {
-                isPasswordValid = BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
-            }
-
-            if (!isPasswordValid)
-            {
-                return new AuthResponseDto
-                {
-                    Success = false,
-                    Error = "Contraseña incorrecta"
-                };
-            }
-
-            // Generar token
-            var tokenResult = GenerateJwtToken(user);
-            
-            var userDto = new UserDto
+            Success = true,
+            Token = tokenResult.Token,
+            RefreshToken = tokenResult.RefreshToken,
+            ExpiresAt = tokenResult.ExpiresAt,
+            User = new UserDto
             {
                 Id = user.Id,
                 Username = user.Username,
                 Email = user.Email,
                 Role = user.Role,
                 CreatedAt = user.CreatedAt
-            };
-
-            return new AuthResponseDto
-            {
-                Success = true,
-                Token = tokenResult.Token,
-                RefreshToken = tokenResult.RefreshToken,
-                ExpiresAt = tokenResult.ExpiresAt,
-                User = userDto
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Login error");
-            return new AuthResponseDto
-            {
-                Success = false,
-                Error = "Error interno"
-            };
-        }
+            }
+        };
     }
 
-   public async Task<AuthResponseDto> RegisterAsync(UserRegisterDto registerDto)
-{
-    try
+    public async Task<AuthResponseDto> RegisterAsync(UserRegisterDto registerDto)
     {
-        _logger.LogInformation($"Register attempt for email: {registerDto.Email}, username: {registerDto.Username}");
+        if (await _context.Users.AnyAsync(u => u.Email == registerDto.Email))
+            return new AuthResponseDto { Success = false, Error = "El email ya está registrado" };
 
-        // Validaciones adicionales
-        if (string.IsNullOrWhiteSpace(registerDto.Email))
-        {
-            _logger.LogWarning("Email is empty");
-            return new AuthResponseDto { Success = false, Error = "Email es requerido" };
-        }
+        if (await _context.Users.AnyAsync(u => u.Username == registerDto.Username))
+            return new AuthResponseDto { Success = false, Error = "El nombre de usuario ya existe" };
 
-        if (string.IsNullOrWhiteSpace(registerDto.Password))
-        {
-            _logger.LogWarning("Password is empty");
-            return new AuthResponseDto { Success = false, Error = "Contraseña es requerida" };
-        }
-
-        if (registerDto.Password != registerDto.ConfirmPassword)
-        {
-            _logger.LogWarning("Passwords don't match");
-            return new AuthResponseDto { Success = false, Error = "Las contraseñas no coinciden" };
-        }
-
-        // Verificar si el email ya existe
-        var existingUser = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == registerDto.Email);
-
-        if (existingUser != null)
-        {
-            _logger.LogWarning($"Email already exists: {registerDto.Email}");
-            return new AuthResponseDto
-            {
-                Success = false,
-                Error = "El email ya está registrado"
-            };
-        }
-
-        // Verificar si el username ya existe
-        var existingUsername = await _context.Users
-            .FirstOrDefaultAsync(u => u.Username == registerDto.Username);
-
-        if (existingUsername != null)
-        {
-            _logger.LogWarning($"Username already exists: {registerDto.Username}");
-            return new AuthResponseDto
-            {
-                Success = false,
-                Error = "El nombre de usuario ya existe"
-            };
-        }
-
-        _logger.LogInformation("Creating new user...");
-
-        // Crear nuevo usuario
         var newUser = new User
         {
             Username = registerDto.Username,
@@ -158,39 +74,10 @@ public class AuthService : IAuthService
             CreatedAt = DateTime.UtcNow
         };
 
-        _logger.LogInformation($"User object created: {newUser.Username}, {newUser.Email}");
-
         await _context.Users.AddAsync(newUser);
-        
-        try
-        {
-            await _context.SaveChangesAsync();
-            _logger.LogInformation($"User saved successfully with ID: {newUser.Id}");
-        }
-        catch (DbUpdateException dbEx)
-        {
-            _logger.LogError(dbEx, "Database error saving user");
-            _logger.LogError($"Inner exception: {dbEx.InnerException?.Message}");
-            return new AuthResponseDto
-            {
-                Success = false,
-                Error = $"Error de base de datos: {dbEx.InnerException?.Message}"
-            };
-        }
+        await _context.SaveChangesAsync();
 
-        // Generar token
         var tokenResult = GenerateJwtToken(newUser);
-        
-        var userDto = new UserDto
-        {
-            Id = newUser.Id,
-            Username = newUser.Username,
-            Email = newUser.Email,
-            Role = newUser.Role,
-            CreatedAt = newUser.CreatedAt
-        };
-
-        _logger.LogInformation($"Registration successful for user: {newUser.Username}");
 
         return new AuthResponseDto
         {
@@ -198,19 +85,32 @@ public class AuthService : IAuthService
             Token = tokenResult.Token,
             RefreshToken = tokenResult.RefreshToken,
             ExpiresAt = tokenResult.ExpiresAt,
-            User = userDto
+            User = new UserDto
+            {
+                Id = newUser.Id,
+                Username = newUser.Username,
+                Email = newUser.Email,
+                Role = newUser.Role,
+                CreatedAt = newUser.CreatedAt
+            }
         };
     }
-    catch (Exception ex)
+
+    public async Task<bool> RevokeRefreshTokenAsync(string refreshToken)
     {
-        _logger.LogError(ex, $"Registration error for email: {registerDto.Email}");
-        return new AuthResponseDto
-        {
-            Success = false,
-            Error = $"Error interno: {ex.Message}"
-        };
+        var user = await _context.Users
+            .Include(u => u.RefreshTokens)
+            .FirstOrDefaultAsync(u => u.RefreshTokens.Any(rt => rt.Token == refreshToken));
+
+        if (user == null) return false;
+
+        var token = user.RefreshTokens.First(rt => rt.Token == refreshToken);
+
+        _context.RefreshTokens.Remove(token);
+        await _context.SaveChangesAsync();
+
+        return true;
     }
-}
 
     public Task<AuthResponseDto> RefreshTokenAsync(string refreshToken)
     {
@@ -224,8 +124,8 @@ public class AuthService : IAuthService
     private TokenResult GenerateJwtToken(User user)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]));
-        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]!));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var claims = new[]
         {
@@ -242,14 +142,12 @@ public class AuthService : IAuthService
             audience: jwtSettings["Audience"],
             claims: claims,
             expires: expires,
-            signingCredentials: credentials
+            signingCredentials: creds
         );
-
-        var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
 
         return new TokenResult
         {
-            Token = tokenString,
+            Token = new JwtSecurityTokenHandler().WriteToken(token),
             RefreshToken = Guid.NewGuid().ToString(),
             ExpiresAt = expires
         };
@@ -257,8 +155,8 @@ public class AuthService : IAuthService
 
     private class TokenResult
     {
-        public string Token { get; set; }
-        public string RefreshToken { get; set; }
+        public string Token { get; set; } = string.Empty;
+        public string RefreshToken { get; set; } = string.Empty;
         public DateTime ExpiresAt { get; set; }
     }
 }

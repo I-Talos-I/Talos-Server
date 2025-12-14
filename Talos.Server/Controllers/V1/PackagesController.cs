@@ -1,14 +1,15 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Talos.Server.Data;
 using Talos.Server.Models;
 using Talos.Server.Models.Dtos.Package;
 
 namespace Talos.Server.Controllers;
-
+[Authorize(Roles = "admin")]
 [ApiController]
-[Route("api/packages")]
+[Route("api/v1/packages")]
 public class PackagesController : ControllerBase
 {
     private readonly AppDbContext _context;

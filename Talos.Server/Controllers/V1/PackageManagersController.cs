@@ -3,11 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using Talos.Server.Data;
 using Talos.Server.Models;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Talos.Server.Controllers;
-
+[Authorize(Roles = "admin")]
 [ApiController]
-[Route("api/package-managers")]
+[Route("api/v1/package-managers")]
 public class PackageManagersController : ControllerBase
 {
     private readonly AppDbContext _context;

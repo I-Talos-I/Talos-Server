@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Talos.Server.Data;
@@ -6,9 +7,10 @@ using Talos.Server.Models;
 using Talos.Server.Models.Dtos;
 
 namespace Talos.Server.Controllers;
+[Authorize(Roles = "admin,user")]
 
 [ApiController]
-[Route("api/templates")]
+[Route("api/v1/templates")]
 public class TemplateController : ControllerBase
 {
     private readonly AppDbContext _context;

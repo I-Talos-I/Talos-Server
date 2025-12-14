@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
 
 namespace Talos.Server.Controllers;
+[Authorize(Roles = "admin")]
 [ApiController]
-[Route("api/cache")]
+[Route("api/v1/cache")]
 public class CacheTestController : ControllerBase
 {
     private readonly IDistributedCache _cache;

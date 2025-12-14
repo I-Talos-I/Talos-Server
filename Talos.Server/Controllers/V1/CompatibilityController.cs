@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Talos.Server.Data;
@@ -6,9 +7,9 @@ using Talos.Server.Models;
 using Talos.Server.Models.Dtos.Compatibility;
 
 namespace Talos.Server.Controllers;
-
+[Authorize(Roles = "admin")]
 [ApiController]
-[Route("api/compatibility")]
+[Route("api/v1/compatibility")]
 public class CompatibilityController : ControllerBase
 {
     private readonly AppDbContext _context;
