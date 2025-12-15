@@ -1,30 +1,66 @@
 ﻿using AutoMapper;
 using Talos.Server.Models;
 using Talos.Server.Models.Dtos;
+using Talos.Server.Models.Entities;
 
 public class MappingProfile : Profile
 {
     public MappingProfile()
     {
-        // TemplateCreateDto - Template
-        CreateMap<TemplateCreateDto, Template>()
-            .ForMember(dest => dest.TemplateName, opt => opt.MapFrom(src => src.Template_Name))
-            .ForMember(dest => dest.IsPublic, opt => opt.MapFrom(src => src.Is_Public))
-            .ForMember(dest => dest.LicenseType, opt => opt.MapFrom(src => src.License_Type))
-            .ForMember(dest => dest.UserId, opt => opt.Ignore())
-            .ForMember(dest => dest.Slug, opt => opt.Ignore())
-            .ForMember(dest => dest.CreateAt, opt => opt.Ignore())
-            .ForMember(dest => dest.Id, opt => opt.Ignore())
-            .ForMember(dest => dest.TemplateDependencies, opt => opt.Ignore());
+        // =========================
+        // CREATE DTO -> ENTITY
+        // =========================
 
-        // Template - TemplateDto
-        CreateMap<Template, TemplateDto>()
-            .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
-            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
-            .ForMember(dest => dest.TemplateName, opt => opt.MapFrom(src => src.TemplateName))
-            .ForMember(dest => dest.Slug, opt => opt.MapFrom(src => src.Slug))
-            .ForMember(dest => dest.IsPublic, opt => opt.MapFrom(src => src.IsPublic))
-            .ForMember(dest => dest.LicenseType, opt => opt.MapFrom(src => src.LicenseType))
-            .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreateAt));
+        CreateMap<TemplateCreateDto, Template>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.UserId, o => o.Ignore())
+            .ForMember(d => d.Slug, o => o.Ignore())
+            .ForMember(d => d.CreatedAt, o => o.Ignore())
+            .ForMember(d => d.Dependencies, o => o.MapFrom(s => s.Dependencies));
+
+        CreateMap<TemplateDependencyCreateDto, TemplateDependency>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.TemplateId, o => o.Ignore())
+            .ForMember(d => d.Versions, o => o.MapFrom(s => s.Versions))
+            .ForMember(d => d.Commands, o => o.Ignore()); // se arma manualmente
+
+        CreateMap<string, DependencyVersion>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.Version, o => o.MapFrom(s => s))
+            .ForMember(d => d.TemplateDependencyId, o => o.Ignore());
+
+        // =========================
+        // ENTITY -> DTO
+        // =========================
+
+        CreateMap<Template, TemplateDto>();
+
+        CreateMap<TemplateDependency, TemplateDependencyDto>()
+            .ForMember(d => d.Versions,
+                o => o.MapFrom(s =>
+                    s.Versions
+                     .OrderBy(v => v.Id)
+                     .Select(v => v.Version)))
+            .ForMember(d => d.Commands,
+                o => o.MapFrom(s => new DependencyCommandsDto
+                {
+                    Linux = s.Commands
+                        .Where(c => c.OS == Talos.Server.Models.Entities.OperatingSystem.Linux)
+                        .OrderBy(c => c.Order)
+                        .Select(c => c.Command)
+                        .ToList(),
+
+                    Windows = s.Commands
+                        .Where(c => c.OS == Talos.Server.Models.Entities.OperatingSystem.Windows)
+                        .OrderBy(c => c.Order)
+                        .Select(c => c.Command)
+                        .ToList(),
+
+                    MacOS = s.Commands
+                        .Where(c => c.OS == Talos.Server.Models.Entities.OperatingSystem.MacOS)
+                        .OrderBy(c => c.Order)
+                        .Select(c => c.Command)
+                        .ToList()
+                }));
     }
 }

@@ -14,7 +14,7 @@ namespace Talos.Server.Data
         public DbSet<Package> Packages { get; set; }
         public DbSet<PackageVersion> PackageVersions { get; set; }
         public DbSet<PackageManager> PackageManagers { get; set; }
-        public DbSet<TemplateDependencies> TemplateDependencies { get; set; }
+        public DbSet<TemplateDependency> TemplateDependencies { get; set; }
         public DbSet<Compatibility> Compatibilities { get; set; }
         public DbSet<Post> Posts { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
@@ -44,26 +44,39 @@ namespace Talos.Server.Data
             // --------------------
             // TemplateDependencies
             // --------------------
-            modelBuilder.Entity<TemplateDependencies>()
-                .HasOne(td => td.Template)
-                .WithMany(t => t.TemplateDependencies)
-                .HasForeignKey(td => td.TemplateId);
+            modelBuilder.Entity<Template>(entity =>
+            {
+                entity.HasIndex(t => t.Slug).IsUnique();
 
-            modelBuilder.Entity<TemplateDependencies>()
-                .HasOne(td => td.Package)
-                .WithMany(p => p.TemplateDependencies)
-                .HasForeignKey(td => td.PackageId);
+                entity.HasOne(t => t.User)
+                    .WithMany()
+                    .HasForeignKey(t => t.UserId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
 
-            // --------------------
-            // Template.Tags (JSON simple)
-            // --------------------
-            modelBuilder.Entity<Template>()
-                .Property(t => t.Tags)
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v ?? new List<string>(), (JsonSerializerOptions)null),
-                    v => JsonSerializer.Deserialize<List<string>>(v ?? "[]", (JsonSerializerOptions)null)
-                )
-                .HasColumnType("longtext"); // usa "json" si tu MySQL lo soporta
+            modelBuilder.Entity<TemplateDependency>(entity =>
+            {
+                entity.HasOne(d => d.Template)
+                    .WithMany(t => t.Dependencies)
+                    .HasForeignKey(d => d.TemplateId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<DependencyVersion>(entity =>
+            {
+                entity.HasOne(v => v.Dependency)
+                    .WithMany(d => d.Versions)
+                    .HasForeignKey(v => v.TemplateDependencyId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<DependencyCommand>(entity =>
+            {
+                entity.HasOne(c => c.Dependency)
+                    .WithMany(d => d.Commands)
+                    .HasForeignKey(c => c.TemplateDependencyId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
 
             // --------------------
             // PackageVersion

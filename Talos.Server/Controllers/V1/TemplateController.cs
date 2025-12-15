@@ -96,15 +96,15 @@ public class TemplateController : ControllerBase
         var templates = await _context.Templates
             .AsNoTracking()
             .Where(t =>
-                EF.Functions.Like(t.TemplateName, $"%{search}%") ||
+                EF.Functions.Like(t.Name, $"%{search}%") ||
                 EF.Functions.Like(t.Slug, $"%{slugSearch}%")
             )
-            .OrderBy(t => t.TemplateName)
+            .OrderBy(t => t.Name)
             .Take(50)
             .Select(t => new TemplateDto
             {
                 Id = t.Id,
-                TemplateName = t.TemplateName,
+                Name = t.Name,
                 Slug = t.Slug,
                 // agrega solo lo que realmente necesitas
             })
@@ -123,7 +123,7 @@ public class TemplateController : ControllerBase
             var templates = await _context.Templates
                 .AsNoTracking()
                 .Where(t => t.IsPublic)
-                .OrderByDescending(t => t.CreateAt)
+                .OrderByDescending(t => t.CreatedAt)
                 .Take(10)
                 .ToListAsync();
 
@@ -143,7 +143,7 @@ public class TemplateController : ControllerBase
         {
             var template = await _context.Templates
                 .AsNoTracking()
-                .Include(t => t.TemplateDependencies)
+                .Include(t => t.Dependencies)
                 .FirstOrDefaultAsync(t => t.Id == id);
 
             if (template == null)
@@ -166,7 +166,7 @@ public class TemplateController : ControllerBase
 
         var template = await _context.Templates
             .AsNoTracking()
-            .Include(t => t.TemplateDependencies)
+            .Include(t => t.Dependencies)
             .FirstOrDefaultAsync(t => t.Slug == slug);
 
         if (template == null)
@@ -191,15 +191,15 @@ public class TemplateController : ControllerBase
 
             var exists = await _context.Templates.AnyAsync(t =>
                 t.UserId == user.Id &&
-                t.TemplateName.ToLower() == dto.Template_Name.ToLower());
+                t.Name.ToLower() == dto.Name.ToLower());
 
             if (exists)
                 return Conflict(new { message = "A template with this name already exists" });
 
             var entity = _mapper.Map<Template>(dto);
             entity.UserId = user.Id;
-            entity.Slug = dto.Template_Name.ToLower().Replace(" ", "-");
-            entity.CreateAt = DateTime.UtcNow;
+            entity.Slug = dto.Name.ToLower().Replace(" ", "-");
+            entity.CreatedAt = DateTime.UtcNow;
             entity.LicenseType ??= "MIT";
 
             _context.Templates.Add(entity);
@@ -226,12 +226,12 @@ public class TemplateController : ControllerBase
         if (template == null)
             return NotFound(new { message = "Template not found" });
 
-        template.TemplateName = dto.Template_Name;
-        template.Slug = dto.Template_Name.ToLower().Replace(" ", "-");
-        template.IsPublic = dto.Is_Public;
-        template.LicenseType = string.IsNullOrWhiteSpace(dto.License_Type)
+        template.Name = dto.Name;
+        template.Slug = dto.Name.ToLower().Replace(" ", "-");
+        template.IsPublic = dto.IsPublic;
+        template.LicenseType = string.IsNullOrWhiteSpace(dto.LicenseType)
             ? "MIT"
-            : dto.License_Type;
+            : dto.LicenseType;
 
         await _context.SaveChangesAsync();
 

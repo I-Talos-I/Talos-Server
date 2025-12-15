@@ -74,42 +74,6 @@ namespace Talos.Server.Migrations
                     b.ToTable("Compatibilities");
                 });
 
-            modelBuilder.Entity("Follow", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int>("FollowedUserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("FollowingUserId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("UserId1")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FollowedUserId");
-
-                    b.HasIndex("FollowingUserId");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("UserId1");
-
-                    b.ToTable("Follows");
-                });
-
             modelBuilder.Entity("Package", b =>
                 {
                     b.Property<int>("Id")
@@ -325,6 +289,57 @@ namespace Talos.Server.Migrations
                     b.ToTable("ApiKeyAudits");
                 });
 
+            modelBuilder.Entity("Talos.Server.Models.Entities.DependencyCommand", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Command")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("OS")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TemplateDependencyId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TemplateDependencyId");
+
+                    b.ToTable("DependencyCommand");
+                });
+
+            modelBuilder.Entity("Talos.Server.Models.Entities.DependencyVersion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("TemplateDependencyId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TemplateDependencyId");
+
+                    b.ToTable("DependencyVersion");
+                });
+
             modelBuilder.Entity("Talos.Server.Models.Entities.RefreshToken", b =>
                 {
                     b.Property<int>("Id")
@@ -405,7 +420,7 @@ namespace Talos.Server.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("CreateAt")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<bool>("IsPublic")
@@ -413,31 +428,38 @@ namespace Talos.Server.Migrations
 
                     b.Property<string>("LicenseType")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("Slug")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
 
-                    b.Property<string>("Tags")
-                        .IsRequired()
-                        .HasColumnType("longtext");
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
 
-                    b.Property<string>("TemplateName")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("UserId")
+                    b.Property<int?>("UserId1")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
                     b.HasIndex("UserId");
+
+                    b.HasIndex("UserId1");
 
                     b.ToTable("Templates");
                 });
 
-            modelBuilder.Entity("TemplateDependencies", b =>
+            modelBuilder.Entity("TemplateDependency", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -445,18 +467,16 @@ namespace Talos.Server.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("CreateAt")
-                        .HasColumnType("datetime(6)");
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
-                    b.Property<int>("PackageId")
+                    b.Property<int?>("PackageId")
                         .HasColumnType("int");
 
                     b.Property<int>("TemplateId")
                         .HasColumnType("int");
-
-                    b.Property<string>("VersionConstraint")
-                        .IsRequired()
-                        .HasColumnType("longtext");
 
                     b.HasKey("Id");
 
@@ -484,33 +504,6 @@ namespace Talos.Server.Migrations
                     b.Navigation("SourcePackageVersion");
 
                     b.Navigation("TargetPackageVersion");
-                });
-
-            modelBuilder.Entity("Follow", b =>
-                {
-                    b.HasOne("Talos.Server.Models.User", "FollowedUser")
-                        .WithMany()
-                        .HasForeignKey("FollowedUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Talos.Server.Models.User", "FollowingUser")
-                        .WithMany()
-                        .HasForeignKey("FollowingUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Talos.Server.Models.User", null)
-                        .WithMany("Followers")
-                        .HasForeignKey("UserId");
-
-                    b.HasOne("Talos.Server.Models.User", null)
-                        .WithMany("Following")
-                        .HasForeignKey("UserId1");
-
-                    b.Navigation("FollowedUser");
-
-                    b.Navigation("FollowingUser");
                 });
 
             modelBuilder.Entity("Package", b =>
@@ -557,6 +550,28 @@ namespace Talos.Server.Migrations
                     b.Navigation("ApiKey");
                 });
 
+            modelBuilder.Entity("Talos.Server.Models.Entities.DependencyCommand", b =>
+                {
+                    b.HasOne("TemplateDependency", "Dependency")
+                        .WithMany("Commands")
+                        .HasForeignKey("TemplateDependencyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dependency");
+                });
+
+            modelBuilder.Entity("Talos.Server.Models.Entities.DependencyVersion", b =>
+                {
+                    b.HasOne("TemplateDependency", "Dependency")
+                        .WithMany("Versions")
+                        .HasForeignKey("TemplateDependencyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dependency");
+                });
+
             modelBuilder.Entity("Talos.Server.Models.Entities.RefreshToken", b =>
                 {
                     b.HasOne("Talos.Server.Models.User", "User")
@@ -571,29 +586,28 @@ namespace Talos.Server.Migrations
             modelBuilder.Entity("Template", b =>
                 {
                     b.HasOne("Talos.Server.Models.User", "User")
-                        .WithMany("Templates")
+                        .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Talos.Server.Models.User", null)
+                        .WithMany("Templates")
+                        .HasForeignKey("UserId1");
 
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("TemplateDependencies", b =>
+            modelBuilder.Entity("TemplateDependency", b =>
                 {
-                    b.HasOne("Package", "Package")
+                    b.HasOne("Package", null)
                         .WithMany("TemplateDependencies")
-                        .HasForeignKey("PackageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("PackageId");
 
                     b.HasOne("Template", "Template")
-                        .WithMany("TemplateDependencies")
+                        .WithMany("Dependencies")
                         .HasForeignKey("TemplateId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Package");
 
                     b.Navigation("Template");
                 });
@@ -624,10 +638,6 @@ namespace Talos.Server.Migrations
 
             modelBuilder.Entity("Talos.Server.Models.User", b =>
                 {
-                    b.Navigation("Followers");
-
-                    b.Navigation("Following");
-
                     b.Navigation("Posts");
 
                     b.Navigation("RefreshTokens");
@@ -637,7 +647,14 @@ namespace Talos.Server.Migrations
 
             modelBuilder.Entity("Template", b =>
                 {
-                    b.Navigation("TemplateDependencies");
+                    b.Navigation("Dependencies");
+                });
+
+            modelBuilder.Entity("TemplateDependency", b =>
+                {
+                    b.Navigation("Commands");
+
+                    b.Navigation("Versions");
                 });
 #pragma warning restore 612, 618
         }

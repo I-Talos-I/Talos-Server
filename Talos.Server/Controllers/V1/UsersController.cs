@@ -38,7 +38,7 @@ public class UsersController : ControllerBase
                     templateCount = u.Templates.Count,
                     postsCount = u.Posts.Count,
                     lastTemplateDate = u.Templates.Any()
-                        ? u.Templates.Max(t => t.CreateAt)
+                        ? u.Templates.Max(t => t.CreatedAt)
                         : (DateTime?)null
                 })
                 .FirstOrDefaultAsync();
@@ -74,7 +74,7 @@ public class UsersController : ControllerBase
 
             var query = _context.Templates
                 .Where(t => t.UserId == id)
-                .OrderByDescending(t => t.CreateAt)
+                .OrderByDescending(t => t.CreatedAt)
                 .AsQueryable();
 
             if (isPublic.HasValue)
@@ -88,12 +88,12 @@ public class UsersController : ControllerBase
                 .Select(t => new
                 {
                     t.Id,
-                    name = t.TemplateName,
+                    name = t.Name,
                     t.Slug,
                     t.IsPublic,
                     t.LicenseType,
-                    t.CreateAt,
-                    dependenciesCount = t.TemplateDependencies.Count
+                    t.CreatedAt,
+                    dependenciesCount = t.Dependencies.Count
                 })
                 .ToListAsync();
 
@@ -124,7 +124,7 @@ public class UsersController : ControllerBase
         {
             var user = await _context.Users
                 .Include(u => u.Templates)
-                    .ThenInclude(t => t.TemplateDependencies)
+                    .ThenInclude(t => t.Dependencies)
                 .FirstOrDefaultAsync(u => u.Id == id);
 
             if (user == null)
@@ -144,9 +144,9 @@ public class UsersController : ControllerBase
                 publicTemplates = templates.Count(t => t.IsPublic),
                 privateTemplates = templates.Count(t => !t.IsPublic),
 
-                totalDependencies = templates.Sum(t => t.TemplateDependencies.Count),
+                totalDependencies = templates.Sum(t => t.Dependencies.Count),
                 avgDependencies = templates.Any()
-                    ? Math.Round(templates.Average(t => t.TemplateDependencies.Count), 2)
+                    ? Math.Round(templates.Average(t => t.Dependencies.Count), 2)
                     : 0,
             });
         }
