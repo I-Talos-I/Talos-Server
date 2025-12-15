@@ -1,20 +1,17 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace Talos.Server.Models.Dtos
+namespace Talos.Server.Models.Dtos;
+
+public class TemplateDependencyCreateDto
 {
-    public class TemplateDependencyCreateDto
-    {
-        [Required]
-        public int TemplateId { get; set; }
+    [Required]
+    [MaxLength(100)]
+    public string Name { get; set; } = null!;
 
-        [Required]
-        public int PackageId { get; set; }
+    [Required]
+    [MinLength(1)]
+    public List<string> Versions { get; set; } = new();
 
-        [Required]
-        [MinLength(1, ErrorMessage = "Version constraint is required")]
-        public string VersionConstraint { get; set; }
-
-        public DateTime CreateAt { get; set; } = DateTime.UtcNow;
-    }
+    [Required]
+    public DependencyCommandsDto Commands { get; set; } = new();
 }

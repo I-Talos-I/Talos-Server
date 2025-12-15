@@ -1,33 +1,26 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Talos.Server.Models.Dtos
+namespace Talos.Server.Models.Dtos;
+
+public class TemplateCreateDto
 {
-    public class TemplateCreateDto
-    {
-        [Required(ErrorMessage = "Template name is required")]
-        [MinLength(3, ErrorMessage = "Name must be at least 3 characters")]
-        [MaxLength(100, ErrorMessage = "Name cannot exceed 100 characters")]
-        public string Template_Name { get; set; }
+    [Required]
+    [MinLength(3)]
+    [MaxLength(100)]
+    public string Name { get; set; } = null!;
 
-        [MaxLength(500)]
-        public string? Description { get; set; }
+    [MaxLength(500)]
+    public string? Description { get; set; }
 
-        [Url(ErrorMessage = "Repository_Url must be a valid URL")]
-        public string? Repository_Url { get; set; }
+    [Url]
+    public string? RepositoryUrl { get; set; }
 
-        public string? Tags { get; set; }
-        public string? Category { get; set; }
+    public bool IsPublic { get; set; } = true;
 
-        public bool Is_Public { get; set; } = true;
-        public bool Is_Featured { get; set; } = false;
+    [MaxLength(50)]
+    public string LicenseType { get; set; } = "MIT";
 
-        [Required]
-        [MinLength(1)]
-        public string Version { get; set; } = "1.0.0";
-
-        public string? Author_Name { get; set; }
-
-        [Required]
-        public string License_Type { get; set; } = "MIT";
-    }
+    [Required]
+    [MinLength(1)]
+    public List<TemplateDependencyCreateDto> Dependencies { get; set; } = new();
 }

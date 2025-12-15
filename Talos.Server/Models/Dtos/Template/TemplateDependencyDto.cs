@@ -1,11 +1,8 @@
-﻿namespace Talos.Server.Models.Dtos
+﻿namespace Talos.Server.Models.Dtos;
+
+public class TemplateDependencyDto
 {
-    public class TemplateDependencyDto
-    {
-        public int Id { get; set; }
-        public int TemplateId { get; set; }
-        public int PackageId { get; set; }
-        public string VersionConstraint { get; set; }
-        public DateTime CreateAt { get; set; }
-    }
+    public string Name { get; set; } = null!;
+    public IReadOnlyList<string> Versions { get; set; } = Array.Empty<string>();
+    public DependencyCommandsDto Commands { get; set; } = new();
 }

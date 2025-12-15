@@ -20,5 +20,5 @@ public class Package
     public PackageManager PackageManager { get; set; }
 
     public ICollection<PackageVersion> PackageVersions { get; set; }
-    public ICollection<TemplateDependencies> TemplateDependencies { get; set; }
+    public ICollection<TemplateDependency> TemplateDependencies { get; set; }
 }
