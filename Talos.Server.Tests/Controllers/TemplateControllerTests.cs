@@ -41,9 +41,9 @@ public class TemplateControllerTests
         {
             cfg.CreateMap<Template, TemplateDto>();
             cfg.CreateMap<TemplateCreateDto, Template>()
-                .ForMember(d => d.TemplateName, o => o.MapFrom(s => s.Template_Name))
-                .ForMember(d => d.IsPublic, o => o.MapFrom(s => s.Is_Public))
-                .ForMember(d => d.LicenseType, o => o.MapFrom(s => s.License_Type));
+                .ForMember(d => d.Name, o => o.MapFrom(s => s.Name))
+                .ForMember(d => d.IsPublic, o => o.MapFrom(s => s.IsPublic))
+                .ForMember(d => d.LicenseType, o => o.MapFrom(s => s.LicenseType));
         });
 
         return config.CreateMapper();
@@ -91,22 +91,24 @@ public class TemplateControllerTests
             new Template
             {
                 Id = 1,
-                TemplateName = "API Base",
+                Name = "API Base",
+                Description = "Base API Template",
                 Slug = "api-base",
                 IsPublic = true,
                 LicenseType = "MIT",
                 UserId = 1,
-                CreateAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow
             },
             new Template
             {
                 Id = 2,
-                TemplateName = "Private Template",
+                Name = "Private Template",
+                Description = "Private Template Description",
                 Slug = "private-template",
                 IsPublic = false,
                 LicenseType = "Apache",
                 UserId = 2,
-                CreateAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow
             }
         );
 
@@ -118,12 +120,16 @@ public class TemplateControllerTests
     [Fact]
     public async Task GetAllTemplates_ReturnsOk()
     {
-        var result = await _controller.GetAllTemplates(null, null, null);
+        var result = await _controller.GetAllTemplates();
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        var list = Assert.IsType<List<TemplateDto>>(ok.Value);
+        Assert.NotNull(ok.Value);
 
-        Assert.Equal(2, list.Count);
+        var json = System.Text.Json.JsonSerializer.Serialize(ok.Value);
+        var root = System.Text.Json.JsonDocument.Parse(json).RootElement;
+        var list = root.GetProperty("data");
+
+        Assert.Equal(1, list.GetArrayLength());
     }
 
     // ---------------- GET BY USER ----------------
@@ -137,7 +143,7 @@ public class TemplateControllerTests
         var list = Assert.IsType<List<TemplateDto>>(ok.Value);
 
         Assert.Single(list);
-        Assert.Equal("API Base", list[0].TemplateName);
+        Assert.Equal("API Base", list[0].Name);
     }
 
     // ---------------- SEARCH ----------------
@@ -184,7 +190,7 @@ public class TemplateControllerTests
         var ok = Assert.IsType<OkObjectResult>(result);
         var dto = Assert.IsType<TemplateDto>(ok.Value);
 
-        Assert.Equal("API Base", dto.TemplateName);
+        Assert.Equal("API Base", dto.Name);
     }
 
     [Fact]
@@ -202,9 +208,10 @@ public class TemplateControllerTests
     {
         var dto = new TemplateCreateDto
         {
-            Template_Name = "New Template",
-            Is_Public = true,
-            License_Type = "MIT"
+            Name = "New Template",
+            Description = "New Description",
+            IsPublic = true,
+            LicenseType = "MIT"
         };
 
         var result = await _controller.CreateTemplate(dto);
@@ -212,7 +219,7 @@ public class TemplateControllerTests
         var created = Assert.IsType<CreatedAtActionResult>(result);
         var value = Assert.IsType<TemplateDto>(created.Value);
 
-        Assert.Equal("New Template", value.TemplateName);
+        Assert.Equal("New Template", value.Name);
     }
 
     [Fact]
@@ -220,8 +227,9 @@ public class TemplateControllerTests
     {
         var dto = new TemplateCreateDto
         {
-            Template_Name = "API Base",
-            Is_Public = true
+            Name = "API Base",
+            Description = "Description",
+            IsPublic = true
         };
 
         var result = await _controller.CreateTemplate(dto);
@@ -236,9 +244,10 @@ public class TemplateControllerTests
     {
         var dto = new TemplateCreateDto
         {
-            Template_Name = "Updated Template",
-            Is_Public = true,
-            License_Type = "MIT"
+            Name = "Updated Template",
+            Description = "Updated Description",
+            IsPublic = true,
+            LicenseType = "MIT"
         };
 
         var result = await _controller.UpdateTemplate(1, dto);
@@ -246,7 +255,7 @@ public class TemplateControllerTests
         var ok = Assert.IsType<OkObjectResult>(result);
         var value = Assert.IsType<TemplateDto>(ok.Value);
 
-        Assert.Equal("Updated Template", value.TemplateName);
+        Assert.Equal("Updated Template", value.Name);
     }
 
     [Fact]
@@ -254,8 +263,9 @@ public class TemplateControllerTests
     {
         var dto = new TemplateCreateDto
         {
-            Template_Name = "No Exists",
-            Is_Public = true
+            Name = "No Exists",
+            Description = "Description",
+            IsPublic = true
         };
 
         var result = await _controller.UpdateTemplate(999, dto);

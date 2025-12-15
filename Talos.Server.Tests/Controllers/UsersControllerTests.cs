@@ -32,24 +32,26 @@ public class UsersControllerTest
             new Template
             {
                 Id = 1,
-                TemplateName = "Template 1",
+                Name = "Template 1",
+                Description = "Description 1",
                 Slug = "template-1",
                 IsPublic = true,
                 LicenseType = "MIT",
-                CreateAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
                 UserId = 1,
-                TemplateDependencies = new List<TemplateDependencies>() // ✅
+                Dependencies = new List<TemplateDependency>() // ✅
             },
             new Template
             {
                 Id = 2,
-                TemplateName = "Template 2",
+                Name = "Template 2",
+                Description = "Description 2",
                 Slug = "template-2",
                 IsPublic = false,
                 LicenseType = "GPL",
-                CreateAt = DateTime.UtcNow.AddDays(-1),
+                CreatedAt = DateTime.UtcNow.AddDays(-1),
                 UserId = 1,
-                TemplateDependencies = new List<TemplateDependencies>() // ✅
+                Dependencies = new List<TemplateDependency>() // ✅
             }
         };
 

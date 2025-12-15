@@ -100,15 +100,20 @@ public class PackagesControllerTests
 
     // ------------------ TESTS ------------------
 
+    // ------------------ TESTS ------------------
+
     [Fact]
     public async Task GetAllPackages_ReturnsOk()
     {
         var result = await _controller.GetAllPackages();
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        var data = ok.Value as dynamic;
+        Assert.NotNull(ok.Value);
+        
+        var json = System.Text.Json.JsonSerializer.Serialize(ok.Value);
+        var data = System.Text.Json.JsonDocument.Parse(json).RootElement;
 
-        Assert.True(data.totalItems > 0);
+        Assert.True(data.GetProperty("totalItems").GetInt32() > 0);
     }
 
     [Fact]
@@ -117,9 +122,12 @@ public class PackagesControllerTests
         var result = await _controller.GetPackageById(1);
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        var data = ok.Value as dynamic;
+        Assert.NotNull(ok.Value);
+        
+        var json = System.Text.Json.JsonSerializer.Serialize(ok.Value);
+        var data = System.Text.Json.JsonDocument.Parse(json).RootElement;
 
-        Assert.Equal("React", (string)data.Name);
+        Assert.Equal("React", data.GetProperty("Name").GetString());
     }
 
     [Fact]
@@ -136,10 +144,13 @@ public class PackagesControllerTests
         var result = await _controller.GetAllByManager(1);
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        var data = ok.Value as dynamic;
+        Assert.NotNull(ok.Value);
+        
+        var json = System.Text.Json.JsonSerializer.Serialize(ok.Value);
+        var data = System.Text.Json.JsonDocument.Parse(json).RootElement;
 
-        Assert.Equal("npm", (string)data.manager.Name);
-        Assert.True(data.total > 0);
+        Assert.Equal("npm", data.GetProperty("manager").GetProperty("Name").GetString());
+        Assert.True(data.GetProperty("total").GetInt32() > 0);
     }
 
     [Fact]
