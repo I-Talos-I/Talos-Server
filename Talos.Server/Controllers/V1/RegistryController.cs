@@ -33,7 +33,7 @@ public class RegistryController : ControllerBase
             .FirstOrDefaultAsync(t =>
                 t.UserId == userId &&
                 t.Slug == slug &&
-                !t.IsPublic
+                t.IsPublic
             );
 
         if (template == null)
