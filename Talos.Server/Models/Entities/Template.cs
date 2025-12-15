@@ -11,6 +11,8 @@ public class Template
     [Required, MaxLength(100)]
     public string Name { get; set; } = null!;
 
+    public string Description { get; set; } = null!;
+
     [Required, MaxLength(120)]
     public string Slug { get; set; } = null!;
 
