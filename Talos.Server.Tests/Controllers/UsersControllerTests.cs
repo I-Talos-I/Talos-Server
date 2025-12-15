@@ -39,7 +39,7 @@ public class UsersControllerTest
                 LicenseType = "MIT",
                 CreatedAt = DateTime.UtcNow,
                 UserId = 1,
-                Dependencies = new List<TemplateDependency>() // ✅
+                Dependencies = new List<TemplateDependency>() 
             },
             new Template
             {
@@ -51,7 +51,7 @@ public class UsersControllerTest
                 LicenseType = "GPL",
                 CreatedAt = DateTime.UtcNow.AddDays(-1),
                 UserId = 1,
-                Dependencies = new List<TemplateDependency>() // ✅
+                Dependencies = new List<TemplateDependency>() 
             }
         };
 

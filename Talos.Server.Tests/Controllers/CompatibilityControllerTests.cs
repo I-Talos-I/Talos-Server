@@ -25,9 +25,9 @@ public class CompatibilityControllerTests
         return new CompatibilityController(context, logger.Object);
     }
 
-    // ============================
+   
     // CHECK
-    // ============================
+    
 
     [Fact]
     public async Task CheckCompatibility_ReturnsBadRequest_WhenPackagesMissing()
@@ -40,9 +40,9 @@ public class CompatibilityControllerTests
         Assert.IsType<BadRequestObjectResult>(result);
     }
 
-    // ============================
+    
     // ANALYZE
-    // ============================
+    
 
     [Fact]
     public async Task AnalyzeTemplateCompatibility_ReturnsBadRequest_WhenDtoIsNull()
@@ -105,9 +105,9 @@ public class CompatibilityControllerTests
         Assert.NotNull(ok.Value);
     }
 
-    // ============================
+   
     // GET PACKAGE COMPATIBILITIES
-    // ============================
+   
 
     [Fact]
     public async Task GetPackageCompatibilities_ReturnsNotFound_WhenPackageDoesNotExist()
@@ -120,9 +120,9 @@ public class CompatibilityControllerTests
         Assert.IsType<NotFoundObjectResult>(result);
     }
 
-    // ============================
+
     // BETWEEN
-    // ============================
+    
 
     [Fact]
     public async Task GetCompatibilityBetweenPackages_ReturnsNotFound_WhenNoData()
@@ -135,9 +135,9 @@ public class CompatibilityControllerTests
         Assert.IsType<NotFoundObjectResult>(result);
     }
 
-    // ============================
+    
     // REPORT
-    // ============================
+    
 
     [Fact]
     public async Task ReportCompatibilityIssue_ReturnsBadRequest_WhenPackagesMissing()
