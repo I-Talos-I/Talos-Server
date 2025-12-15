@@ -96,18 +96,22 @@ public class TemplateController : ControllerBase
 
         var templates = await _context.Templates
             .AsNoTracking()
+            .Include(t => t.User)
             .Where(t =>
                 EF.Functions.Like(t.Name, $"%{search}%") ||
                 EF.Functions.Like(t.Slug, $"%{slugSearch}%")
             )
             .OrderBy(t => t.Name)
-            .Take(50)
+            .Take(20)
             .Select(t => new TemplateDto
             {
                 Id = t.Id,
                 Name = t.Name,
+                Description = t.Description,
                 Slug = t.Slug,
-                // agrega solo lo que realmente necesitas
+                LicenseType = t.LicenseType,
+                CreatedAt = t.CreatedAt,
+                UserName = !string.IsNullOrEmpty(t.User!.Username) ? t.User.Username : "No username"
             })
             .ToListAsync();
 
