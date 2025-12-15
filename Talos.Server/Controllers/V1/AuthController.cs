@@ -78,7 +78,7 @@ public class AuthController : ControllerBase
         var profileDto = new UserProfileDto
         {
             Id = user.Id,
-            Username = user.Username,
+            Username = user.UserName,
             Email = user.Email,
             Role = user.Role,
             CreatedAt = user.CreatedAt,
@@ -101,12 +101,12 @@ public class AuthController : ControllerBase
         if (user == null) return NotFound(new { message = "User not found" });
 
         // Update username
-        if (!string.IsNullOrEmpty(updateDto.Username) && updateDto.Username != user.Username)
+        if (!string.IsNullOrEmpty(updateDto.Username) && updateDto.Username != user.UserName)
         {
-            if (await _context.Users.AnyAsync(u => u.Username == updateDto.Username && u.Id != userId))
+            if (await _context.Users.AnyAsync(u => u.UserName == updateDto.Username && u.Id != userId))
                 return Conflict(new { message = "Username already in use" });
 
-            user.Username = updateDto.Username;
+            user.UserName = updateDto.Username;
         }
 
         // Update email

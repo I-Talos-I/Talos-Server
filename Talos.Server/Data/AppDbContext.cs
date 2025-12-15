@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
 using Talos.Server.Models;
 using Talos.Server.Models.Entities;
 
@@ -19,6 +18,9 @@ namespace Talos.Server.Data
         public DbSet<Follow> Follows { get; set; }
         public DbSet<Post> Posts { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<Tag> Tags { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<UserNotificationPreference> UserNotificationPreferences { get; set; }
         
         // Apikeys For the team 
         public DbSet<ApiKey> ApiKeys { get; set; } = null!;
@@ -29,9 +31,7 @@ namespace Talos.Server.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // --------------------
             // User
-            // --------------------
             modelBuilder.Entity<User>()
                 .HasMany(u => u.Posts)
                 .WithOne(p => p.User)
@@ -42,9 +42,7 @@ namespace Talos.Server.Data
                 .WithOne(t => t.User)
                 .HasForeignKey(t => t.UserId);
 
-            // --------------------
             // Follows
-            // --------------------
             modelBuilder.Entity<Follow>()
                 .HasOne(f => f.FollowingUser)
                 .WithMany()
@@ -57,9 +55,7 @@ namespace Talos.Server.Data
                 .HasForeignKey(f => f.FollowedUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // --------------------
-            // TemplateDependencies
-            // --------------------
+            // TemplateDependency
             modelBuilder.Entity<TemplateDependencies>()
                 .HasOne(td => td.Template)
                 .WithMany(t => t.TemplateDependencies)
@@ -70,28 +66,13 @@ namespace Talos.Server.Data
                 .WithMany(p => p.TemplateDependencies)
                 .HasForeignKey(td => td.PackageId);
 
-            // --------------------
-            // Template.Tags (JSON simple)
-            // --------------------
-            modelBuilder.Entity<Template>()
-                .Property(t => t.Tags)
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v ?? new List<string>(), (JsonSerializerOptions)null),
-                    v => JsonSerializer.Deserialize<List<string>>(v ?? "[]", (JsonSerializerOptions)null)
-                )
-                .HasColumnType("longtext"); // usa "json" si tu MySQL lo soporta
-
-            // --------------------
             // PackageVersion
-            // --------------------
             modelBuilder.Entity<PackageVersion>()
                 .HasOne(pv => pv.Package)
                 .WithMany(p => p.PackageVersions)
                 .HasForeignKey(pv => pv.PackageId);
 
-            // --------------------
             // Compatibility
-            // --------------------
             modelBuilder.Entity<Compatibility>()
                 .HasOne(c => c.SourcePackageVersion)
                 .WithMany(pv => pv.SourceCompatibilities)

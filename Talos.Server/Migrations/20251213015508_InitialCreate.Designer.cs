@@ -12,8 +12,8 @@ using Talos.Server.Data;
 namespace Talos.Server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251202185810_TestingUsers")]
-    partial class TestingUsers
+    [Migration("20251213015508_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -94,21 +94,11 @@ namespace Talos.Server.Migrations
                     b.Property<int>("FollowingUserId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("UserId1")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("FollowedUserId");
 
                     b.HasIndex("FollowingUserId");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("UserId1");
 
                     b.ToTable("Follows");
                 });
@@ -219,7 +209,22 @@ namespace Talos.Server.Migrations
                     b.ToTable("PackageVersions");
                 });
 
-            modelBuilder.Entity("Post", b =>
+            modelBuilder.Entity("PostTag", b =>
+                {
+                    b.Property<int>("PostsId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TagsId")
+                        .HasColumnType("int");
+
+                    b.HasKey("PostsId", "TagsId");
+
+                    b.HasIndex("TagsId");
+
+                    b.ToTable("PostTags", (string)null);
+                });
+
+            modelBuilder.Entity("Talos.Server.Models.Entities.Post", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -269,18 +274,117 @@ namespace Talos.Server.Migrations
                     b.Property<bool>("IsRevoked")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<string>("Token")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("varchar(255)");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Token")
+                        .IsUnique();
+
                     b.HasIndex("UserId");
 
-                    b.ToTable("RefreshTokens");
+                    b.ToTable("RefreshToken");
+                });
+
+            modelBuilder.Entity("Talos.Server.Models.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ArchivedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Payload")
+                        .HasColumnType("json");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("TagId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TagId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notification");
+                });
+
+            modelBuilder.Entity("Talos.Server.Models.Tag", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("varchar(7)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("IsSystemTag")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime>("UpdatedKey")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Tag");
                 });
 
             modelBuilder.Entity("Talos.Server.Models.User", b =>
@@ -292,9 +396,21 @@ namespace Talos.Server.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AvatarUrl")
+                        .HasColumnType("longtext")
+                        .HasColumnName("AvatarUrl");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)")
                         .HasColumnName("CreatedAt");
+
+                    b.Property<int>("CurrentPrivateTemplates")
+                        .HasColumnType("int")
+                        .HasColumnName("CurrentPrivateTemplates");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("DeletedAt");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -302,10 +418,35 @@ namespace Talos.Server.Migrations
                         .HasColumnType("varchar(255)")
                         .HasColumnName("Email");
 
+                    b.Property<bool>("EmailVerified")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("EmailVerified");
+
+                    b.Property<bool>("IsOnline")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IsOnline");
+
+                    b.Property<string>("LastConnectionId")
+                        .HasColumnType("longtext")
+                        .HasColumnName("LastConnectionId");
+
+                    b.Property<string>("LastIpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("varchar(45)")
+                        .HasColumnName("LastIpAddress");
+
+                    b.Property<DateTime?>("LastSeenAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("LastSeenAt");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("longtext")
                         .HasColumnName("PasswordHash");
+
+                    b.Property<int>("PrivateTemplateLimit")
+                        .HasColumnType("int")
+                        .HasColumnName("PrivateTemplateLimit");
 
                     b.Property<string>("Role")
                         .IsRequired()
@@ -313,7 +454,21 @@ namespace Talos.Server.Migrations
                         .HasColumnType("varchar(50)")
                         .HasColumnName("Role");
 
-                    b.Property<string>("Username")
+                    b.Property<string>("SignalrConnectionId")
+                        .HasColumnType("longtext")
+                        .HasColumnName("SignalrConnectionId");
+
+                    b.Property<string>("Tier")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("Tier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("UpdatedAt");
+
+                    b.Property<string>("UserName")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)")
@@ -322,6 +477,48 @@ namespace Talos.Server.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("Talos.Server.Models.UserNotificationPreference", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsMuted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("TagId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdateAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("ViaEmail")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("ViaPush")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("ViaWeb")
+                        .HasColumnType("tinyint(1)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TagId");
+
+                    b.HasIndex("UserId", "TagId")
+                        .IsUnique();
+
+                    b.ToTable("UserNotificationPreference");
                 });
 
             modelBuilder.Entity("Template", b =>
@@ -412,24 +609,16 @@ namespace Talos.Server.Migrations
             modelBuilder.Entity("Follow", b =>
                 {
                     b.HasOne("Talos.Server.Models.User", "FollowedUser")
-                        .WithMany()
+                        .WithMany("Followers")
                         .HasForeignKey("FollowedUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Talos.Server.Models.User", "FollowingUser")
-                        .WithMany()
+                        .WithMany("Following")
                         .HasForeignKey("FollowingUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("Talos.Server.Models.User", null)
-                        .WithMany("Followers")
-                        .HasForeignKey("UserId");
-
-                    b.HasOne("Talos.Server.Models.User", null)
-                        .WithMany("Following")
-                        .HasForeignKey("UserId1");
 
                     b.Navigation("FollowedUser");
 
@@ -458,7 +647,22 @@ namespace Talos.Server.Migrations
                     b.Navigation("Package");
                 });
 
-            modelBuilder.Entity("Post", b =>
+            modelBuilder.Entity("PostTag", b =>
+                {
+                    b.HasOne("Talos.Server.Models.Entities.Post", null)
+                        .WithMany()
+                        .HasForeignKey("PostsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Talos.Server.Models.Tag", null)
+                        .WithMany()
+                        .HasForeignKey("TagsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Talos.Server.Models.Entities.Post", b =>
                 {
                     b.HasOne("Talos.Server.Models.User", "User")
                         .WithMany("Posts")
@@ -472,10 +676,47 @@ namespace Talos.Server.Migrations
             modelBuilder.Entity("Talos.Server.Models.Entities.RefreshToken", b =>
                 {
                     b.HasOne("Talos.Server.Models.User", "User")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Talos.Server.Models.Notification", b =>
+                {
+                    b.HasOne("Talos.Server.Models.Tag", "Tag")
+                        .WithMany("Notifications")
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Talos.Server.Models.User", "User")
+                        .WithMany("Notifications")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tag");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Talos.Server.Models.UserNotificationPreference", b =>
+                {
+                    b.HasOne("Talos.Server.Models.Tag", "Tag")
+                        .WithMany("UserPreferences")
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Talos.Server.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Tag");
 
                     b.Navigation("User");
                 });
@@ -529,13 +770,24 @@ namespace Talos.Server.Migrations
                     b.Navigation("TargetCompatibilities");
                 });
 
+            modelBuilder.Entity("Talos.Server.Models.Tag", b =>
+                {
+                    b.Navigation("Notifications");
+
+                    b.Navigation("UserPreferences");
+                });
+
             modelBuilder.Entity("Talos.Server.Models.User", b =>
                 {
                     b.Navigation("Followers");
 
                     b.Navigation("Following");
 
+                    b.Navigation("Notifications");
+
                     b.Navigation("Posts");
+
+                    b.Navigation("RefreshTokens");
 
                     b.Navigation("Templates");
                 });

@@ -249,82 +249,6 @@ namespace Talos.Server.Migrations
                     b.ToTable("Posts");
                 });
 
-            modelBuilder.Entity("Talos.Server.Models.Entities.ApiKey", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<DateTime?>("ExpiresAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("varchar(128)");
-
-                    b.Property<int?>("MaxUsage")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Owner")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<string>("Scope")
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<int>("UsageCount")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ApiKeys");
-                });
-
-            modelBuilder.Entity("Talos.Server.Models.Entities.ApiKeyAudit", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("AccessedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int>("ApiKeyId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Endpoint")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("IP")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApiKeyId");
-
-                    b.ToTable("ApiKeyAudits");
-                });
-
             modelBuilder.Entity("Talos.Server.Models.Entities.RefreshToken", b =>
                 {
                     b.Property<int>("Id")
@@ -416,10 +340,6 @@ namespace Talos.Server.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<string>("Slug")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Tags")
                         .IsRequired()
                         .HasColumnType("longtext");
 
@@ -546,21 +466,10 @@ namespace Talos.Server.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Talos.Server.Models.Entities.ApiKeyAudit", b =>
-                {
-                    b.HasOne("Talos.Server.Models.Entities.ApiKey", "ApiKey")
-                        .WithMany("Audits")
-                        .HasForeignKey("ApiKeyId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ApiKey");
-                });
-
             modelBuilder.Entity("Talos.Server.Models.Entities.RefreshToken", b =>
                 {
                     b.HasOne("Talos.Server.Models.User", "User")
-                        .WithMany("RefreshTokens")
+                        .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -622,6 +531,13 @@ namespace Talos.Server.Migrations
                     b.Navigation("Audits");
                 });
 
+            modelBuilder.Entity("Talos.Server.Models.Tag", b =>
+                {
+                    b.Navigation("Notifications");
+
+                    b.Navigation("UserPreferences");
+                });
+
             modelBuilder.Entity("Talos.Server.Models.User", b =>
                 {
                     b.Navigation("Followers");
@@ -629,8 +545,6 @@ namespace Talos.Server.Migrations
                     b.Navigation("Following");
 
                     b.Navigation("Posts");
-
-                    b.Navigation("RefreshTokens");
 
                     b.Navigation("Templates");
                 });
