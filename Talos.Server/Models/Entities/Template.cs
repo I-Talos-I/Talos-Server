@@ -6,7 +6,7 @@ public class Template
     [Key]
     public int Id { get; set; }
 
-    public int? UserId { get; set; } // nullable si el usuario se elimina
+    public int? UserId { get; set; }
 
     [Required, MaxLength(100)]
     public string Name { get; set; } = null!;
