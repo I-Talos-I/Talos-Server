@@ -37,7 +37,5 @@ public class User
     // Propiedades de navegación
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
     public ICollection<Post> Posts { get; set; } = new List<Post>();
-    public ICollection<Follow> Followers { get; set; } = new List<Follow>();
-    public ICollection<Follow> Following { get; set; } = new List<Follow>();
     public ICollection<Template> Templates { get; set; } = new List<Template>();
 }
