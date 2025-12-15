@@ -190,10 +190,10 @@ public class CompatibilityController : ControllerBase
                 errors = errors.Count,
                 deprecatedCount = analysisResults.Count(r => (bool)r.GetType().GetProperty("isDeprecated").GetValue(r)),
                 incompatibleCount = analysisResults.Count(r =>
-                    ((List<object>)r.GetType().GetProperty("incompatibilities").GetValue(r)).Count > 0),
+                    ((IList)r.GetType().GetProperty("incompatibilities").GetValue(r)).Count > 0),
                 riskLevel = analysisResults.Any(r =>
                     (bool)r.GetType().GetProperty("isDeprecated").GetValue(r) ||
-                    ((List<object>)r.GetType().GetProperty("incompatibilities").GetValue(r)).Count > 0)
+                    ((IList)r.GetType().GetProperty("incompatibilities").GetValue(r)).Count > 0)
                     ? "MEDIUM"
                     : "LOW"
             };
@@ -620,7 +620,7 @@ public class CompatibilityController : ControllerBase
         }
 
         var incompatible = analysisResults.Where(r =>
-            ((List<object>)r.GetType().GetProperty("incompatibilities").GetValue(r)).Count > 0).ToList();
+            ((IList)r.GetType().GetProperty("incompatibilities").GetValue(r)).Count > 0).ToList();
 
         if (incompatible.Any())
         {
@@ -663,6 +663,9 @@ public class CompatibilityController : ControllerBase
             Version = version,
             ReleaseDate = DateTime.UtcNow,
             IsDeprecated = false,
+            DeprecationMessage = "",
+            DownloadUrl = "",
+            ReleaseNotesUrl = "",
             CreateAt = DateTime.UtcNow
         };
 
