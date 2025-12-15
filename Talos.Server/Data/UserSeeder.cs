@@ -11,7 +11,7 @@ public class UserSeeder
         {
             var admin = new User
             {
-                Username = "admin",
+                UserName = "admin",
                 Email = "Admin@talos.com",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("BuyTerrariaForCami!"), // contraseña inicial
                 Role = "admin",

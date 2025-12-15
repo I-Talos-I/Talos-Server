@@ -1,35 +1,74 @@
+using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.SwaggerGen;
 using Talos.Server.Data;
 using Talos.Server.Middleware;
+using Talos.Server.Models.Entities;
 using Talos.Server.Services;
 using Talos.Server.Services.Auth;
-using Talos.Server.Models.Entities;
+using Talos.Server.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --------------------
-// DbContext
-// --------------------
-var connectionString =
-    builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? builder.Configuration.GetConnectionString("Default");
+// Add services to the container.
+builder.Services.AddControllers();
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+// Swagger
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme.",
+        Name = "Authorization",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+    
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement()
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                },
+                Scheme = "oauth2",
+                Name = "Bearer",
+                In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+            },
+            new List<string>()
+        }
+    });
+});
 
-// --------------------
-// JWT
-// --------------------
+// Database
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrEmpty(connectionString))
+{
+    connectionString = builder.Configuration.GetConnectionString("Default");
+}
+
+if (!string.IsNullOrEmpty(connectionString))
+{
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+}
+else
+{
+    Console.WriteLine("ERROR: No database connection string found!");
+}
+
+// JWT Configuration
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 builder.Services.Configure<JwtSettings>(jwtSettings);
 
-var key = Encoding.UTF8.GetBytes(
-    jwtSettings["Key"] ?? "your-default-secret-key-minimum-32-characters");
+// Authentication
+var key = Encoding.UTF8.GetBytes(jwtSettings["Key"] ?? "your-default-secret-key-minimum-32-characters");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -43,59 +82,40 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = jwtSettings["Issuer"],
             ValidAudience = jwtSettings["Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(key),
-            ClockSkew = TimeSpan.Zero
+            ClockSkew = TimeSpan.Zero // Eliminar margen de tiempo
+        };
+        
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine($"Authentication failed: {context.Exception.Message}");
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                Console.WriteLine("Token validated successfully");
+                return Task.CompletedTask;
+            }
         };
     });
 
+// Authorization
 builder.Services.AddAuthorization();
 
-// --------------------
-// Servicios
-// --------------------
+// Services
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<TemplateService>();
-
-// Controllers + JSON Options
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.WriteIndented = true;
-    });
-
-// Swagger
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "Talos API", Version = "v1" });
-    c.SwaggerDoc("v2", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "Talos API", Version = "v2" });
-    c.DocInclusionPredicate((docName, apiDesc) =>
-    {
-        if (!apiDesc.TryGetMethodInfo(out var methodInfo))
-            return false;
-
-        var versions = methodInfo.DeclaringType?
-            .GetCustomAttributes(true)
-            .OfType<ApiExplorerSettingsAttribute>()
-            .Select(attr => attr.GroupName)
-            .ToList();
-
-        if (versions == null || versions.Count == 0)
-            return docName == "v1";
-
-        if (docName == "v1")
-            return versions.Contains("v1");
-
-        if (docName == "v2")
-            return versions.Contains("v1") || versions.Contains("v2");
-
-        return false;
-    });
-});
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IUserStatusService, UserStatusService>();
+builder.Services.AddScoped<IFollowService, FollowService>();
+builder.Services.AddScoped<ITagService, TagService>();
+builder.Services.AddScoped<IPostService, PostService>();
+builder.Services.AddScoped<AiTagService>();
 
 // AutoMapper
-builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
-// Cache (Redis fallback)
+
+// Redis Cache
 var redisConnection = builder.Configuration.GetConnectionString("Redis");
 if (!string.IsNullOrEmpty(redisConnection))
 {
@@ -107,82 +127,88 @@ if (!string.IsNullOrEmpty(redisConnection))
 }
 else
 {
+    Console.WriteLine("WARNING: Redis connection string not found. Using in-memory cache.");
     builder.Services.AddDistributedMemoryCache();
 }
 
-// CORS
+// CORS (frontend)
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("Frontend", policy =>
+    options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins(
-                "https://talos.vandlee.com",
-                "http://localhost:3000",
-                "http://localhost:5173",
-                "http://localhost:4200"
-            )
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .AllowCredentials();
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
     });
 });
 
-// --------------------
-// Build app
-// --------------------
 var app = builder.Build();
 
-// --------------------
-// Seed inicial de Admin y API Keys
-// --------------------
-using (var scope = app.Services.CreateScope())
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Talos API V1");
+        c.RoutePrefix = string.Empty; // Swagger en la raíz
+    });
     
-    // Crea admin por defecto si no existe
-    await UserSeeder.SeedAsync(db);
-
-    // Crea API Keys iniciales
-    ApiKeySeeder.Seed(db);
+    // Mostrar información de configuración en desarrollo
+    Console.WriteLine($"Database Connection: {connectionString}");
+    Console.WriteLine($"Redis Connection: {redisConnection}");
+    Console.WriteLine($"JWT Issuer: {jwtSettings["Issuer"]}");
 }
-
-// --------------------
-// Middleware
-// --------------------
-app.UseSwagger();
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Talos API v1");
-    c.SwaggerEndpoint("/swagger/v2/swagger.json", "Talos API v2");
-});
 
 if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
 
-app.UseRouting();
-app.UseCors("Frontend");
-app.UseAuthentication();
-app.UseAuthorization();
-app.UseMiddleware<ApiKeyMiddleware>();
 
-// --------------------
-// Endpoints
-// --------------------
+// CORS
+app.UseCors("AllowAll");
+
+// Authentication & Authorization (IMPORTANTE: este orden es crucial)
+app.UseAuthentication();
+
+// Middleware para actualizar último visto / estado online
+app.UseMiddleware<UserActivityMiddleware>();
+
+app.UseAuthorization();
+
 app.MapControllers();
 
-app.MapGet("/", () => Results.Ok(new
+// Crear base de datos automáticamente en desarrollo
+if (app.Environment.IsDevelopment())
 {
-    name = "Talos API",
-    status = "Running",
-    environment = app.Environment.EnvironmentName
-}));
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    
+    try
+    {
+        // Verificar si la base de datos existe, si no, crearla
+        if (dbContext.Database.CanConnect())
+        {
+            Console.WriteLine("Database connection successful");
+            
+            // Aplicar migraciones pendientes
+            dbContext.Database.Migrate();
+            Console.WriteLine("Migrations applied successfully");
+        }
+        else
+        {
+            Console.WriteLine("Cannot connect to database");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Database error: {ex.Message}");
+    }
+}
 
-app.MapGet("/health", () => Results.Ok(new
-{
-    status = "Healthy",
-    timestamp = DateTime.UtcNow
-}));
+app.MapGet("/health", () => Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow }));
 
 app.Run();
+
+

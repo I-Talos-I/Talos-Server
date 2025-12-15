@@ -1,84 +1,53 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Talos.Server.Data;
 using Talos.Server.Models;
+using Talos.Server.Services.Interfaces;
 
-namespace Talos.Server.Services
+namespace Talos.Server.Services;
+
+public class TagService : ITagService
 {
-    public class TagService
+    private readonly AppDbContext _context;
+
+    public TagService(AppDbContext context)
     {
-        private readonly AppDbContext _db;
+        _context = context;
+    }
 
-        public TagService(AppDbContext db)
+    public async Task<Tag> CreateTagAsync(string name, string? description = null, string? color = null, bool isSystem = false)
+    {
+        var tag = new Tag
         {
-            _db = db;
-        }
+            Name = name,
+            Description = description,
+            Color = color ?? "#3B82F6",
+            IsSystemTag = isSystem,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedKey = DateTime.UtcNow
+        };
 
-        public async Task<List<string>> AddTagsAsync(
-            int templateId,
-            List<string> tags)
-        {
-            var template = await _db.Templates.FindAsync(templateId);
-            if (template == null)
-                throw new Exception("Template not found");
+        _context.Tags.Add(tag);
+        await _context.SaveChangesAsync();
+        return tag;
+    }
 
-            tags = Normalize(tags);
+    public async Task<List<Tag>> GetAllTagsAsync()
+    {
+        return await _context.Tags.ToListAsync();
+    }
 
-            template.Tags ??= new List<string>();
+    public async Task<Tag?> GetTagByIdAsync(int tagId)
+    {
+        return await _context.Tags.FindAsync(tagId);
+    }
 
-            foreach (var tag in tags)
-            {
-                if (!template.Tags.Contains(tag))
-                    template.Tags.Add(tag);
-            }
+    public async Task<bool> DeleteTagAsync(int tagId)
+    {
+        var tag = await _context.Tags.FindAsync(tagId);
+        if (tag == null) return false;
 
-            await _db.SaveChangesAsync();
-            return template.Tags;
-        }
-
-        public async Task RemoveTagAsync(int templateId, string tag)
-        {
-            var template = await _db.Templates.FindAsync(templateId);
-            if (template == null)
-                throw new Exception("Template not found");
-
-            tag = tag.Trim().ToLower();
-
-            if (!template.Tags.Remove(tag))
-                throw new Exception("Tag not found");
-
-            await _db.SaveChangesAsync();
-        }
-        public async Task<List<string>> ReplaceTagsAsync(
-            int templateId,
-            List<string> tags)
-        {
-            var template = await _db.Templates.FindAsync(templateId);
-            if (template == null)
-                throw new Exception("Template not found");
-
-            template.Tags = Normalize(tags);
-
-            await _db.SaveChangesAsync();
-            return template.Tags;
-        }
-
-
-        public async Task<List<Template>> GetTemplatesByTagAsync(string tag)
-        {
-            tag = tag.Trim().ToLower();
-
-            return await _db.Templates
-                .Where(t => t.IsPublic && t.Tags.Contains(tag))
-                .ToListAsync();
-        }
-
-        private static List<string> Normalize(List<string> tags)
-        {
-            return tags
-                .Select(t => t.Trim().ToLower())
-                .Where(t => !string.IsNullOrWhiteSpace(t))
-                .Distinct()
-                .ToList();
-        }
+        _context.Tags.Remove(tag);
+        await _context.SaveChangesAsync();
+        return true;
     }
 }

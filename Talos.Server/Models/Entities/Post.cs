@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿namespace Talos.Server.Models.Entities;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Talos.Server.Models;
 
@@ -15,4 +16,7 @@ public class Post
     [ForeignKey("User")]
     public int UserId { get; set; }
     public User User { get; set; }
+    
+    public ICollection<Tag> Tags { get; set; } = new List<Tag>();
+
 }

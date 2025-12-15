@@ -38,7 +38,7 @@ public class RegistryController : ControllerBase
             template = new
             {
                 name = template.TemplateName,
-                author = template.User.Username
+                author = template.User.UserName
             },
             dependencies = template.TemplateDependencies.Select(d => new
             {
