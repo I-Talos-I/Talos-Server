@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Talos.Server.Data;
 using Talos.Server.Models;
+using Talos.Server.Services;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 
@@ -13,13 +14,16 @@ public class PackageManagersController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly ILogger<PackageManagersController> _logger;
+    private readonly PackageManagerService _packageManagerService;
 
     public PackageManagersController(
         AppDbContext context,
-        ILogger<PackageManagersController> logger)
+        ILogger<PackageManagersController> logger,
+        PackageManagerService packageManagerService)
     {
         _context = context;
         _logger = logger;
+        _packageManagerService = packageManagerService;
     }
 
     // GET: api/package-managers
@@ -82,6 +86,33 @@ public class PackageManagersController : ControllerBase
         }
     }
 
+    // GET: api/package-managers/by-name/{name}
+    [HttpGet("by-name/{name}")]
+    public async Task<IActionResult> GetManagerByName(string name)
+    {
+        try
+        {
+            var manager = await _packageManagerService.GetByNameAsync(name);
+            
+            if (manager == null)
+                return NotFound(new { message = "Gestor de paquetes no encontrado" });
+
+            // Transformar a DTO si es necesario
+            var result = new
+            {
+                manager.Id,
+                manager.Name,
+            };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error obteniendo gestor por nombre: {name}");
+            return StatusCode(500, new { message = "Error interno", detail = ex.Message });
+        }
+    }
+
     // POST: api/package-managers
     [HttpPost]
     public async Task<IActionResult> CreateManager([FromBody] PackageManagerDto dto)
@@ -91,9 +122,9 @@ public class PackageManagersController : ControllerBase
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // Validar duplicados
-            var exists = await _context.PackageManagers.AnyAsync(m => m.Name == dto.Name);
-            if (exists)
+            // Usar el servicio para verificar si ya existe
+            var existingManager = await _packageManagerService.GetByNameAsync(dto.Name);
+            if (existingManager != null)
                 return Conflict(new { message = "Ya existe un gestor con ese nombre" });
 
             var manager = new PackageManager
@@ -125,11 +156,9 @@ public class PackageManagersController : ControllerBase
             var manager = await _context.PackageManagers.FindAsync(id);
             if (manager == null)
                 return NotFound(new { message = "Gestor de paquetes no encontrado" });
-
-            // Validar nombre duplicado
-            var exists = await _context.PackageManagers
-                .AnyAsync(m => m.Name == dto.Name && m.Id != id);
-            if (exists)
+            
+            var existingManager = await _packageManagerService.GetByNameAsync(dto.Name);
+            if (existingManager != null && existingManager.Id != id)
                 return Conflict(new { message = "Otro gestor ya tiene ese nombre" });
 
             manager.Name = dto.Name;
