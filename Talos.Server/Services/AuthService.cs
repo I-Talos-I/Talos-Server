@@ -111,6 +111,7 @@ public class AuthService : IAuthService
         return true;
     }
 
+    //TODO no medio el tiempo para testearlo bien pero por lo que teste no explota
     public async Task<AuthResponseDto> RefreshTokenAsync(string refreshToken)
     {
         try
