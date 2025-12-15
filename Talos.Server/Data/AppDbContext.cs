@@ -16,7 +16,6 @@ namespace Talos.Server.Data
         public DbSet<PackageManager> PackageManagers { get; set; }
         public DbSet<TemplateDependencies> TemplateDependencies { get; set; }
         public DbSet<Compatibility> Compatibilities { get; set; }
-        public DbSet<Follow> Follows { get; set; }
         public DbSet<Post> Posts { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         
@@ -41,21 +40,6 @@ namespace Talos.Server.Data
                 .HasMany(u => u.Templates)
                 .WithOne(t => t.User)
                 .HasForeignKey(t => t.UserId);
-
-            // --------------------
-            // Follows
-            // --------------------
-            modelBuilder.Entity<Follow>()
-                .HasOne(f => f.FollowingUser)
-                .WithMany()
-                .HasForeignKey(f => f.FollowingUserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Follow>()
-                .HasOne(f => f.FollowedUser)
-                .WithMany()
-                .HasForeignKey(f => f.FollowedUserId)
-                .OnDelete(DeleteBehavior.Restrict);
 
             // --------------------
             // TemplateDependencies

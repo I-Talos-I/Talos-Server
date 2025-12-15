@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Talos.Server.Data;
-using Talos.Server.Models;
 using Talos.Server.Models.Dtos;
 
 namespace Talos.Server.Controllers;
@@ -23,37 +22,47 @@ public class TemplateController : ControllerBase
 
     // GET: api/templates
     [HttpGet]
-    [Authorize(Roles = "admin,user")]
     public async Task<IActionResult> GetAllTemplates(
-        [FromQuery] bool? isPublic = null,
-        [FromQuery] string? licenseType = null,
-        [FromQuery] int? userId = null)
-    {
+        [FromQuery] int page = 1
+    ){
+        const int pageSize = 10;
+
+        if (page < 1) page = 1;
+
         try
         {
             var query = _context.Templates
                 .AsNoTracking()
-                .AsQueryable();
+                .Where(t => t.IsPublic == false);
 
-            if (isPublic.HasValue)
-                query = query.Where(t => t.IsPublic == isPublic);
+            var total = await query.CountAsync();
 
-            if (!string.IsNullOrWhiteSpace(licenseType))
-                query = query.Where(t => t.LicenseType == licenseType);
+            var templates = await query
+                .OrderBy(t => t.Id) // obligatorio para paginación consistente
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
 
-            if (userId.HasValue)
-                query = query.Where(t => t.UserId == userId);
-
-            var templates = await query.ToListAsync();
             var dto = _mapper.Map<List<TemplateDto>>(templates);
 
-            return Ok(dto);
+            return Ok(new
+            {
+                data = dto,
+                pagination = new
+                {
+                    page,
+                    pageSize,
+                    total,
+                    totalPages = (int)Math.Ceiling(total / (double)pageSize)
+                }
+            });
         }
         catch (Exception ex)
         {
             return StatusCode(500, new { message = "Internal server error", detail = ex.Message });
         }
     }
+
 
     // GET: api/templates/user/{userId}
     [HttpGet("user/{userId:int}")]

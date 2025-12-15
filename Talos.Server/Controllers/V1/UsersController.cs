@@ -1,11 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Talos.Server.Data;
-using Talos.Server.Models;
 
 namespace Talos.Server.Controllers;
-[Authorize(Roles = "admin,user")]
 
 [ApiController]
 [Route("api/v1/users")]
@@ -39,8 +36,6 @@ public class UsersController : ControllerBase
                     u.Role,
                     u.CreatedAt,
                     templateCount = u.Templates.Count,
-                    followersCount = _context.Follows.Count(f => f.FollowedUserId == u.Id),
-                    followingCount = _context.Follows.Count(f => f.FollowingUserId == u.Id),
                     postsCount = u.Posts.Count,
                     lastTemplateDate = u.Templates.Any()
                         ? u.Templates.Max(t => t.CreateAt)
@@ -153,9 +148,6 @@ public class UsersController : ControllerBase
                 avgDependencies = templates.Any()
                     ? Math.Round(templates.Average(t => t.TemplateDependencies.Count), 2)
                     : 0,
-
-                followersCount = _context.Follows.Count(f => f.FollowedUserId == id),
-                followingCount = _context.Follows.Count(f => f.FollowingUserId == id)
             });
         }
         catch (Exception ex)
@@ -191,59 +183,5 @@ public class UsersController : ControllerBase
             .ToListAsync();
 
         return Ok(users);
-    }
-
-    // ------------------------------------------------------------------
-    // 5️⃣ GET /api/v1/users/{id}/followers
-    // Seguidores
-    // ------------------------------------------------------------------
-    [HttpGet("{id}/followers")]
-    public async Task<IActionResult> GetUserFollowers(
-        int id,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
-    {
-        var followers = await _context.Follows
-            .Where(f => f.FollowedUserId == id)
-            .Include(f => f.FollowingUser)
-            .OrderByDescending(f => f.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(f => new
-            {
-                f.FollowingUser.Id,
-                f.FollowingUser.Username,
-                followedAt = f.CreatedAt
-            })
-            .ToListAsync();
-
-        return Ok(new { userId = id, followers });
-    }
-
-    // ------------------------------------------------------------------
-    // 6️⃣ GET /api/v1/users/{id}/following
-    // Usuarios seguidos
-    // ------------------------------------------------------------------
-    [HttpGet("{id}/following")]
-    public async Task<IActionResult> GetUserFollowing(
-        int id,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
-    {
-        var following = await _context.Follows
-            .Where(f => f.FollowingUserId == id)
-            .Include(f => f.FollowedUser)
-            .OrderByDescending(f => f.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(f => new
-            {
-                f.FollowedUser.Id,
-                f.FollowedUser.Username,
-                followedAt = f.CreatedAt
-            })
-            .ToListAsync();
-
-        return Ok(new { userId = id, following });
     }
 }
