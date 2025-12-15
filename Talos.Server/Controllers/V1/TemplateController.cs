@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using System.Security.Claims;
+using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -33,7 +34,7 @@ public class TemplateController : ControllerBase
         {
             var query = _context.Templates
                 .AsNoTracking()
-                .Where(t => t.IsPublic == false);
+                .Where(t => t.IsPublic == true);
 
             var total = await query.CountAsync();
 
@@ -114,8 +115,8 @@ public class TemplateController : ControllerBase
     }
 
 
-    // GET: api/templates/featured
-    [HttpGet("featured")]
+    // GET: api/templates/recent
+    [HttpGet("recent")]
     public async Task<IActionResult> GetFeaturedTemplates()
     {
         try
@@ -175,8 +176,7 @@ public class TemplateController : ControllerBase
         return Ok(_mapper.Map<TemplateDto>(template));
     }
 
-    // POST: api/templates
-    [HttpPost]
+    // POST: api/templates[HttpPost]
     [Authorize(Roles = "admin,user")]
     public async Task<IActionResult> CreateTemplate([FromBody] TemplateCreateDto dto)
     {
@@ -185,19 +185,24 @@ public class TemplateController : ControllerBase
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var user = await _context.Users.OrderBy(u => u.Id).FirstOrDefaultAsync();
+            // Obtener el ID del usuario autenticado desde el token JWT
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+                return Unauthorized(new { message = "Invalid user authentication" });
+
+            var user = await _context.Users.FindAsync(userId);
             if (user == null)
-                return StatusCode(500, new { message = "No users available" });
+                return Unauthorized(new { message = "User not found" });
 
             var exists = await _context.Templates.AnyAsync(t =>
-                t.UserId == user.Id &&
+                t.UserId == userId &&
                 t.Name.ToLower() == dto.Name.ToLower());
 
             if (exists)
                 return Conflict(new { message = "A template with this name already exists" });
 
             var entity = _mapper.Map<Template>(dto);
-            entity.UserId = user.Id;
+            entity.UserId = userId;
             entity.Slug = dto.Name.ToLower().Replace(" ", "-");
             entity.CreatedAt = DateTime.UtcNow;
             entity.LicenseType ??= "MIT";
@@ -222,34 +227,67 @@ public class TemplateController : ControllerBase
     [Authorize(Roles = "admin,user")]
     public async Task<IActionResult> UpdateTemplate(int id, [FromBody] TemplateCreateDto dto)
     {
-        var template = await _context.Templates.FirstOrDefaultAsync(t => t.Id == id);
-        if (template == null)
-            return NotFound(new { message = "Template not found" });
+        try
+        {
+            var template = await _context.Templates.FirstOrDefaultAsync(t => t.Id == id);
+            if (template == null)
+                return NotFound(new { message = "Template not found" });
 
-        template.Name = dto.Name;
-        template.Slug = dto.Name.ToLower().Replace(" ", "-");
-        template.IsPublic = dto.IsPublic;
-        template.LicenseType = string.IsNullOrWhiteSpace(dto.LicenseType)
-            ? "MIT"
-            : dto.LicenseType;
+            // Obtener el ID del usuario autenticado
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+                return Unauthorized(new { message = "Invalid user authentication" });
 
-        await _context.SaveChangesAsync();
+            // Verificar que sea el dueño (o permitir admin)
+            var isAdmin = User.IsInRole("admin");
+            if (template.UserId != userId && !isAdmin)
+                return Forbid(); // 403 Forbidden
 
-        return Ok(_mapper.Map<TemplateDto>(template));
+            template.Name = dto.Name;
+            template.Slug = dto.Name.ToLower().Replace(" ", "-");
+            template.IsPublic = dto.IsPublic;
+            template.LicenseType = string.IsNullOrWhiteSpace(dto.LicenseType)
+                ? "MIT"
+                : dto.LicenseType;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(_mapper.Map<TemplateDto>(template));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Internal error", detail = ex.Message });
+        }
     }
 
-    // DELETE: api/templates/{id}
     [HttpDelete("{id:int}")]
     [Authorize(Roles = "admin,user")]
     public async Task<IActionResult> DeleteTemplate(int id)
     {
-        var template = await _context.Templates.FirstOrDefaultAsync(t => t.Id == id);
-        if (template == null)
-            return NotFound(new { message = "Template not found" });
+        try
+        {
+            var template = await _context.Templates.FirstOrDefaultAsync(t => t.Id == id);
+            if (template == null)
+                return NotFound(new { message = "Template not found" });
 
-        _context.Templates.Remove(template);
-        await _context.SaveChangesAsync();
+            // Obtener el ID del usuario autenticado
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+                return Unauthorized(new { message = "Invalid user authentication" });
 
-        return NoContent();
+            // Verificar que sea el dueño (o permitir admin)
+            var isAdmin = User.IsInRole("admin");
+            if (template.UserId != userId && !isAdmin)
+                return Forbid(); // 403 Forbidden
+
+            _context.Templates.Remove(template);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Internal error", detail = ex.Message });
+        }
     }
 }

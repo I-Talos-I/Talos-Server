@@ -32,14 +32,10 @@ namespace Talos.Server.Data
             // User
             // --------------------
             modelBuilder.Entity<User>()
-                .HasMany(u => u.Posts)
-                .WithOne(p => p.User)
-                .HasForeignKey(p => p.UserId);
-
-            modelBuilder.Entity<User>()
                 .HasMany(u => u.Templates)
                 .WithOne(t => t.User)
-                .HasForeignKey(t => t.UserId);
+                .HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // --------------------
             // TemplateDependencies
@@ -47,11 +43,6 @@ namespace Talos.Server.Data
             modelBuilder.Entity<Template>(entity =>
             {
                 entity.HasIndex(t => t.Slug).IsUnique();
-
-                entity.HasOne(t => t.User)
-                    .WithMany()
-                    .HasForeignKey(t => t.UserId)
-                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<TemplateDependency>(entity =>
