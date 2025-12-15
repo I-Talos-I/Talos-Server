@@ -180,7 +180,8 @@ public class TemplateController : ControllerBase
         return Ok(_mapper.Map<TemplateDto>(template));
     }
 
-    // POST: api/templates[HttpPost]
+    // POST: api/templates
+    [HttpPost]
     [Authorize(Roles = "admin,user")]
     public async Task<IActionResult> CreateTemplate([FromBody] TemplateCreateDto dto)
     {
