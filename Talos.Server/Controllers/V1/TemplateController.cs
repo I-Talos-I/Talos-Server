@@ -149,6 +149,9 @@ public class TemplateController : ControllerBase
             var template = await _context.Templates
                 .AsNoTracking()
                 .Include(t => t.Dependencies)
+                    .ThenInclude(d => d.Versions)
+                .Include(t => t.Dependencies)
+                    .ThenInclude(d => d.Commands)
                 .FirstOrDefaultAsync(t => t.Id == id);
 
             if (template == null)
@@ -172,6 +175,9 @@ public class TemplateController : ControllerBase
         var template = await _context.Templates
             .AsNoTracking()
             .Include(t => t.Dependencies)
+                .ThenInclude(d => d.Versions)
+            .Include(t => t.Dependencies)
+                .ThenInclude(d => d.Commands)
             .FirstOrDefaultAsync(t => t.Slug == slug);
 
         if (template == null)
