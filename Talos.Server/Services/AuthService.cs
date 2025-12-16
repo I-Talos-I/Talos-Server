@@ -2,7 +2,7 @@
 using System.Security.Claims;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;//TODO eliminar. No se esta usando pero no lo quiero eliminar por el primer proverbio del ingeniero
 using Microsoft.IdentityModel.Tokens;
 using Talos.Server.Data;
 using Talos.Server.Models;
@@ -28,6 +28,7 @@ public class AuthService : IAuthService
     public async Task<AuthResponseDto> LoginAsync(string email, string password)
     {
         var user = await _context.Users
+            .Include(u => u.RefreshTokens)
             .FirstOrDefaultAsync(u => u.Email == email);
 
         if (user == null)
@@ -38,7 +39,7 @@ public class AuthService : IAuthService
         if (!isValid)
             return new AuthResponseDto { Success = false, Error = "Contraseña incorrecta" };
 
-        var tokenResult = GenerateJwtToken(user);
+        var tokenResult = await GenerateJwtTokenAsync(user);
 
         return new AuthResponseDto
         {
@@ -77,7 +78,7 @@ public class AuthService : IAuthService
         await _context.Users.AddAsync(newUser);
         await _context.SaveChangesAsync();
 
-        var tokenResult = GenerateJwtToken(newUser);
+        var tokenResult = await GenerateJwtTokenAsync(newUser);
 
         return new AuthResponseDto
         {
@@ -98,13 +99,11 @@ public class AuthService : IAuthService
 
     public async Task<bool> RevokeRefreshTokenAsync(string refreshToken)
     {
-        var user = await _context.Users
-            .Include(u => u.RefreshTokens)
-            .FirstOrDefaultAsync(u => u.RefreshTokens.Any(rt => rt.Token == refreshToken));
+        var token = await _context.RefreshTokens
+            .Include(rt => rt.User)
+            .FirstOrDefaultAsync(rt => rt.Token == refreshToken);
 
-        if (user == null) return false;
-
-        var token = user.RefreshTokens.First(rt => rt.Token == refreshToken);
+        if (token == null) return false;
 
         _context.RefreshTokens.Remove(token);
         await _context.SaveChangesAsync();
@@ -112,16 +111,55 @@ public class AuthService : IAuthService
         return true;
     }
 
-    public Task<AuthResponseDto> RefreshTokenAsync(string refreshToken)
+    //TODO no medio el tiempo para testearlo bien pero por lo que teste no explota
+    public async Task<AuthResponseDto> RefreshTokenAsync(string refreshToken)
     {
-        return Task.FromResult(new AuthResponseDto
+        try
         {
-            Success = false,
-            Error = "No implementado"
-        });
+            var storedToken = await _context.RefreshTokens
+                .Include(rt => rt.User)
+                .FirstOrDefaultAsync(rt => rt.Token == refreshToken);
+
+            if (storedToken == null)
+                return new AuthResponseDto { Success = false, Error = "Refresh token inválido" };
+
+            if (storedToken.ExpiresAt < DateTime.UtcNow)
+                return new AuthResponseDto { Success = false, Error = "Refresh token expirado" };
+
+            if (storedToken.IsRevoked)
+                return new AuthResponseDto { Success = false, Error = "Refresh token revocado" };
+
+            // Revocar el token actual
+            _context.RefreshTokens.Remove(storedToken);
+            await _context.SaveChangesAsync();
+
+            // Generar nuevos tokens
+            var tokenResult = await GenerateJwtTokenAsync(storedToken.User);
+
+            return new AuthResponseDto
+            {
+                Success = true,
+                Token = tokenResult.Token,
+                RefreshToken = tokenResult.RefreshToken,
+                ExpiresAt = tokenResult.ExpiresAt,
+                User = new UserDto
+                {
+                    Id = storedToken.User.Id,
+                    Username = storedToken.User.Username,
+                    Email = storedToken.User.Email,
+                    Role = storedToken.User.Role,
+                    CreatedAt = storedToken.User.CreatedAt
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al refrescar token");
+            return new AuthResponseDto { Success = false, Error = "Error interno del servidor" };
+        }
     }
 
-    private TokenResult GenerateJwtToken(User user)
+    private async Task<TokenResult> GenerateJwtTokenAsync(User user)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]!));
@@ -145,10 +183,31 @@ public class AuthService : IAuthService
             signingCredentials: creds
         );
 
+        // Crear refresh token
+        var refreshToken = new RefreshToken
+        {
+            Token = Guid.NewGuid().ToString(),
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddDays(7), // Refresh token válido por 7 días
+            UserId = user.Id,
+            IsRevoked = false
+        };
+
+        // Limpiar tokens antiguos (opcional, mantener solo los últimos N tokens)
+        var oldTokens = user.RefreshTokens?.Where(rt => rt.ExpiresAt < DateTime.UtcNow).ToList();
+        if (oldTokens?.Any() == true)
+        {
+            _context.RefreshTokens.RemoveRange(oldTokens);
+        }
+
+        // Guardar el nuevo refresh token
+        await _context.RefreshTokens.AddAsync(refreshToken);
+        await _context.SaveChangesAsync();
+
         return new TokenResult
         {
             Token = new JwtSecurityTokenHandler().WriteToken(token),
-            RefreshToken = Guid.NewGuid().ToString(),
+            RefreshToken = refreshToken.Token,
             ExpiresAt = expires
         };
     }

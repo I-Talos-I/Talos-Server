@@ -54,6 +54,7 @@ builder.Services.AddAuthorization();
 // --------------------
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<TemplateService>();
+builder.Services.AddScoped<PackageManagerService>();
 
 // Controllers + JSON Options
 builder.Services.AddControllers()
@@ -186,3 +187,4 @@ app.MapGet("/health", () => Results.Ok(new
 }));
 
 app.Run();
+//TODO refactorizar algunas partes del codigo para implementar buenas practicas
