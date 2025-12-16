@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Talos.Server.Data;
 using Talos.Server.Models.Dtos;
+using System.Net;
 
 namespace Talos.Server.Controllers;
 
@@ -166,11 +167,13 @@ public class TemplateController : ControllerBase
     }
     
     // GET: api/templates/{slug}
-    [HttpGet("by-slug/{slug}")]
+    [HttpGet("by-slug/{*slug}")]
     public async Task<IActionResult> GetBySlug(string slug)
     {
         if (string.IsNullOrWhiteSpace(slug))
             return BadRequest(new { message = "Slug is required" });
+
+        var decodedSlug = WebUtility.UrlDecode(slug);
 
         var template = await _context.Templates
             .AsNoTracking()
@@ -178,7 +181,7 @@ public class TemplateController : ControllerBase
                 .ThenInclude(d => d.Versions)
             .Include(t => t.Dependencies)
                 .ThenInclude(d => d.Commands)
-            .FirstOrDefaultAsync(t => t.Slug == slug);
+            .FirstOrDefaultAsync(t => t.Slug == decodedSlug);
 
         if (template == null)
             return NotFound(new { message = "Template not found" });
