@@ -2,6 +2,7 @@
 using Talos.Server.Models;
 using Talos.Server.Models.Dtos;
 using Talos.Server.Models.Entities;
+using OperatingSystem = Talos.Server.Models.Entities.OperatingSystem;
 
 public class MappingProfile : Profile
 {
@@ -10,7 +11,6 @@ public class MappingProfile : Profile
         // =========================
         // CREATE DTO -> ENTITY
         // =========================
-
         CreateMap<TemplateCreateDto, Template>()
             .ForMember(d => d.Id, o => o.Ignore())
             .ForMember(d => d.UserId, o => o.Ignore())
@@ -22,7 +22,7 @@ public class MappingProfile : Profile
             .ForMember(d => d.Id, o => o.Ignore())
             .ForMember(d => d.TemplateId, o => o.Ignore())
             .ForMember(d => d.Versions, o => o.MapFrom(s => s.Versions))
-            .ForMember(d => d.Commands, o => o.Ignore()); // se arma manualmente
+            .ForMember(d => d.Commands, o => o.MapFrom(s => MapCommands(s.Commands))); // Manual mapping replaced with custom MapFrom
 
         CreateMap<string, DependencyVersion>()
             .ForMember(d => d.Id, o => o.Ignore())
@@ -32,7 +32,6 @@ public class MappingProfile : Profile
         // =========================
         // ENTITY -> DTO
         // =========================
-
         CreateMap<Template, TemplateDto>();
 
         CreateMap<TemplateDependency, TemplateDependencyDto>()
@@ -45,22 +44,67 @@ public class MappingProfile : Profile
                 o => o.MapFrom(s => new DependencyCommandsDto
                 {
                     Linux = s.Commands
-                        .Where(c => c.OS == Talos.Server.Models.Entities.OperatingSystem.Linux)
+                        .Where(c => c.OS == OperatingSystem.Linux)
                         .OrderBy(c => c.Order)
                         .Select(c => c.Command)
                         .ToList(),
-
                     Windows = s.Commands
-                        .Where(c => c.OS == Talos.Server.Models.Entities.OperatingSystem.Windows)
+                        .Where(c => c.OS == OperatingSystem.Windows)
                         .OrderBy(c => c.Order)
                         .Select(c => c.Command)
                         .ToList(),
-
                     MacOS = s.Commands
-                        .Where(c => c.OS == Talos.Server.Models.Entities.OperatingSystem.MacOS)
+                        .Where(c => c.OS == OperatingSystem.MacOS)
                         .OrderBy(c => c.Order)
                         .Select(c => c.Command)
                         .ToList()
                 }));
+
+    }
+
+    private static List<DependencyCommand> MapCommands(DependencyCommandsDto commandsDto)
+    {
+        var commands = new List<DependencyCommand>();
+
+        if (commandsDto?.Linux != null)
+        {
+            for (int i = 0; i < commandsDto.Linux.Count; i++)
+            {
+                commands.Add(new DependencyCommand
+                {
+                    OS = OperatingSystem.Linux,
+                    Order = i + 1, // Assuming order starts from 1; adjust if needed
+                    Command = commandsDto.Linux[i]
+                });
+            }
+        }
+
+        if (commandsDto?.Windows != null)
+        {
+            for (int i = 0; i < commandsDto.Windows.Count; i++)
+            {
+                commands.Add(new DependencyCommand
+                {
+                    OS = OperatingSystem.Windows,
+                    Order = i + 1,
+                    Command = commandsDto.Windows[i]
+                });
+            }
+        }
+
+        if (commandsDto?.MacOS != null)
+        {
+            for (int i = 0; i < commandsDto.MacOS.Count; i++)
+            {
+                commands.Add(new DependencyCommand
+                {
+                    OS = OperatingSystem.MacOS,
+                    Order = i + 1,
+                    Command = commandsDto.MacOS[i]
+                });
+            }
+        }
+
+        return commands;
     }
 }
