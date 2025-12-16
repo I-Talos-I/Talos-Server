@@ -243,7 +243,13 @@ public class TemplateController : ControllerBase
     {
         try
         {
-            var template = await _context.Templates.FirstOrDefaultAsync(t => t.Id == id);
+            var template = await _context.Templates
+                .Include(t => t.Dependencies)
+                    .ThenInclude(d => d.Versions)
+                .Include(t => t.Dependencies)
+                    .ThenInclude(d => d.Commands)
+                .FirstOrDefaultAsync(t => t.Id == id);
+
             if (template == null)
                 return NotFound(new { message = "Template not found" });
 
@@ -258,11 +264,27 @@ public class TemplateController : ControllerBase
                 return Forbid(); // 403 Forbidden
 
             template.Name = dto.Name;
+            template.Description = dto.Description;
             template.Slug = dto.Name.ToLower().Replace(" ", "-");
             template.IsPublic = dto.IsPublic;
             template.LicenseType = string.IsNullOrWhiteSpace(dto.LicenseType)
                 ? "MIT"
                 : dto.LicenseType;
+
+            // Clear existing dependencies
+            foreach (var dep in template.Dependencies.ToList())
+            {
+                _context.TemplateDependencies.Remove(dep);
+            }
+            template.Dependencies.Clear();
+
+            // Map and add new dependencies
+            var newDependencies = _mapper.Map<List<TemplateDependency>>(dto.Dependencies);
+            foreach (var dep in newDependencies)
+            {
+                dep.TemplateId = template.Id; // Set foreign key
+                template.Dependencies.Add(dep);
+            }
 
             await _context.SaveChangesAsync();
 
