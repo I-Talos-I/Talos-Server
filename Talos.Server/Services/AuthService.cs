@@ -60,6 +60,12 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponseDto> RegisterAsync(UserRegisterDto registerDto)
     {
+        if (string.IsNullOrEmpty(registerDto.Email))
+            return new AuthResponseDto { Success = false, Error = "Email es requerido" };
+
+        if (registerDto.Password != registerDto.ConfirmPassword)
+            return new AuthResponseDto { Success = false, Error = "Las contraseñas no coinciden" };
+
         if (await _context.Users.AnyAsync(u => u.Email == registerDto.Email))
             return new AuthResponseDto { Success = false, Error = "El email ya está registrado" };
 
